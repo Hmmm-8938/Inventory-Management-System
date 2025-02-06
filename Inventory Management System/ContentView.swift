@@ -15,30 +15,39 @@ struct ContentView: View {
 
     var body: some View
     {
-        VStack(spacing: 20)
+        NavigationView
         {
-            CodeScannerView(codeTypes: [.code128, .qr], simulatedData: "Paul Hudson") { response in
-                switch response
+            VStack
+            {
+                NavigationLink(destination: ScannerView())
                 {
-                    case .success(let result):
-                    print("Found code: \(result.string)")
-                    case .failure(let error):
-                    print(error.localizedDescription)
+                    Text("Check Out")
+                        .frame(width: 300, height: 150, alignment: .center)
+                        .background(Color .gray)
+                        .foregroundColor(Color .black)
+                        .cornerRadius(50)
+                        .border(Color .black)
+                        
+                        
+                }
+                NavigationLink(destination: ScannerView())
+                {
+                    Text("Check In")
+                        .frame(width: 300, height: 150, alignment: .center)
+                        .background(Color .gray)
+                        .foregroundColor(Color .black)
+                        .cornerRadius(50)
+                }
+                
+                NavigationLink(destination: Test())
+                {
+                    Text("Check In")
+                        .frame(width: 300, height: 150, alignment: .center)
+                        .background(Color .gray)
+                        .foregroundColor(Color .black)
+                        .cornerRadius(50)
                 }
             }
-            Button("Sign in")
-            {
-                // Handle sign in
-            }
-            .padding()
-            .background(RoundedRectangle(cornerRadius: 8).stroke(Color.blue, lineWidth: 2))
-            
-            Button("Sign out")
-            {
-                // Handle sign out
-            }
-            .padding()
-            .background(RoundedRectangle(cornerRadius: 8).stroke(Color.red, lineWidth: 2))
         }
     }
 }
