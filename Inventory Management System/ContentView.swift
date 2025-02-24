@@ -38,15 +38,6 @@ struct ContentView: View {
                         .foregroundColor(Color .black)
                         .cornerRadius(50)
                 }
-                
-                NavigationLink(destination: Test())
-                {
-                    Text("Check In")
-                        .frame(width: 300, height: 150, alignment: .center)
-                        .background(Color .gray)
-                        .foregroundColor(Color .black)
-                        .cornerRadius(50)
-                }
             }
         }
     }

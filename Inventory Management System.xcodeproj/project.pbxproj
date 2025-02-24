@@ -8,6 +8,10 @@
 
 /* Begin PBXBuildFile section */
 		649063D42D55239E00CD42E9 /* CodeScanner in Frameworks */ = {isa = PBXBuildFile; productRef = 649063D32D55239E00CD42E9 /* CodeScanner */; };
+		64B096272D5CFBD4009A8DBB /* SwiftSoup in Frameworks */ = {isa = PBXBuildFile; productRef = 64B096262D5CFBD4009A8DBB /* SwiftSoup */; };
+		64B096942D5E6152009A8DBB /* SQLite in Frameworks */ = {isa = PBXBuildFile; productRef = 64B096932D5E6152009A8DBB /* SQLite */; };
+		64B0969A2D5E6428009A8DBB /* PythonKit in Frameworks */ = {isa = PBXBuildFile; productRef = 64B096992D5E6428009A8DBB /* PythonKit */; };
+		64B096B32D5E695A009A8DBB /* Inventory-Management-System-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 64B096B22D5E695A009A8DBB /* Inventory-Management-System-Info.plist */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -31,6 +35,7 @@
 		6480B37F2D496162007E011F /* Inventory Management System.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Inventory Management System.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		6480B3912D496163007E011F /* Inventory Management SystemTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Inventory Management SystemTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		6480B39B2D496163007E011F /* Inventory Management SystemUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Inventory Management SystemUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		64B096B22D5E695A009A8DBB /* Inventory-Management-System-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Inventory-Management-System-Info.plist"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -56,7 +61,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				64B096942D5E6152009A8DBB /* SQLite in Frameworks */,
 				649063D42D55239E00CD42E9 /* CodeScanner in Frameworks */,
+				64B096272D5CFBD4009A8DBB /* SwiftSoup in Frameworks */,
+				64B0969A2D5E6428009A8DBB /* PythonKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -84,6 +92,7 @@
 				6480B3942D496163007E011F /* Inventory Management SystemTests */,
 				6480B39E2D496163007E011F /* Inventory Management SystemUITests */,
 				6480B3802D496162007E011F /* Products */,
+				64B096B22D5E695A009A8DBB /* Inventory-Management-System-Info.plist */,
 			);
 			sourceTree = "<group>";
 		};
@@ -118,6 +127,9 @@
 			name = "Inventory Management System";
 			packageProductDependencies = (
 				649063D32D55239E00CD42E9 /* CodeScanner */,
+				64B096262D5CFBD4009A8DBB /* SwiftSoup */,
+				64B096932D5E6152009A8DBB /* SQLite */,
+				64B096992D5E6428009A8DBB /* PythonKit */,
 			);
 			productName = "Inventory Management System";
 			productReference = 6480B37F2D496162007E011F /* Inventory Management System.app */;
@@ -203,6 +215,9 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				649063D22D55239E00CD42E9 /* XCRemoteSwiftPackageReference "CodeScanner" */,
+				64B096252D5CFAD6009A8DBB /* XCRemoteSwiftPackageReference "SwiftSoup" */,
+				64B096922D5E6152009A8DBB /* XCRemoteSwiftPackageReference "SQLite" */,
+				64B096982D5E6428009A8DBB /* XCRemoteSwiftPackageReference "PythonKit" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 6480B3802D496162007E011F /* Products */;
@@ -221,6 +236,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				64B096B32D5E695A009A8DBB /* Inventory-Management-System-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -408,7 +424,8 @@
 				DEVELOPMENT_TEAM = 8SN9KC4U27;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSCameraUsageDescription = "$(PRODUCT_NAME) would like access to your camera to scan QR and Barcodes essential to the usage of the app.";
+				INFOPLIST_FILE = "Inventory-Management-System-Info.plist";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Inventory Management System would like access to your camera to scan QR and Barcodes essential to the usage of the app.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -438,7 +455,8 @@
 				DEVELOPMENT_TEAM = 8SN9KC4U27;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSCameraUsageDescription = "$(PRODUCT_NAME) would like access to your camera to scan QR and Barcodes essential to the usage of the app.";
+				INFOPLIST_FILE = "Inventory-Management-System-Info.plist";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Inventory Management System would like access to your camera to scan QR and Barcodes essential to the usage of the app.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -579,6 +597,30 @@
 				minimumVersion = 2.5.2;
 			};
 		};
+		64B096252D5CFAD6009A8DBB /* XCRemoteSwiftPackageReference "SwiftSoup" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/scinfu/SwiftSoup";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.7.7;
+			};
+		};
+		64B096922D5E6152009A8DBB /* XCRemoteSwiftPackageReference "SQLite" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/stephencelis/SQLite.swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.15.3;
+			};
+		};
+		64B096982D5E6428009A8DBB /* XCRemoteSwiftPackageReference "PythonKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/pvieito/PythonKit.git";
+			requirement = {
+				branch = master;
+				kind = branch;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -586,6 +628,21 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 649063D22D55239E00CD42E9 /* XCRemoteSwiftPackageReference "CodeScanner" */;
 			productName = CodeScanner;
+		};
+		64B096262D5CFBD4009A8DBB /* SwiftSoup */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 64B096252D5CFAD6009A8DBB /* XCRemoteSwiftPackageReference "SwiftSoup" */;
+			productName = SwiftSoup;
+		};
+		64B096932D5E6152009A8DBB /* SQLite */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 64B096922D5E6152009A8DBB /* XCRemoteSwiftPackageReference "SQLite" */;
+			productName = SQLite;
+		};
+		64B096992D5E6428009A8DBB /* PythonKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 64B096982D5E6428009A8DBB /* XCRemoteSwiftPackageReference "PythonKit" */;
+			productName = PythonKit;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

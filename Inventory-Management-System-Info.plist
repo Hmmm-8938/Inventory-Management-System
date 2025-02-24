@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- App Transport Security (Allows loading external web pages) -->
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsArbitraryLoads</key>
+        <true/>
+    </dict>
+
+    <!-- File Sharing Permissions -->
+    <key>UIFileSharingEnabled</key>
+    <true/>
+    <key>LSSupportsOpeningDocumentsInPlace</key>
+    <true/>
+
+    <!-- Privacy Permissions (If needed for future features) -->
+    <key>NSCameraUsageDescription</key>
+    <string>This app requires access to the camera.</string>
+
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>This app requires access to the photo library.</string>
+
+    <key>NSMicrophoneUsageDescription</key>
+    <string>This app requires access to the microphone.</string>
+
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>This app requires location access while using the app.</string>
+
+</dict>
+</plist>
