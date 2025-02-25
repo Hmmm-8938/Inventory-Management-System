@@ -5,6 +5,7 @@
 //  Created by Kelsey Souchereau on 2025-02-24.
 //
 import SwiftUI
+import SwiftData
 
 struct CheckedOutRecord: Identifiable {
     let id = UUID()
@@ -15,6 +16,7 @@ struct CheckedOutRecord: Identifiable {
 // Dummy Data, will be pulled from caching/offline
 struct CheckedOutItemsView: View {
     @Environment(\.presentationMode) private var presentationMode
+    @Query private var items: [ApplicationData]
     @State private var checkedOutRecords: [CheckedOutRecord] = [
         CheckedOutRecord(personName: "John Doe", items: ["Femur Bone", "Dinosaur Skull"], checkoutTime: Date(timeIntervalSinceNow: -3600)),
         CheckedOutRecord(personName: "Jane Smith", items: ["Lion Pelt", "Tiger Claw"], checkoutTime: Date(timeIntervalSinceNow: -7200)),
@@ -42,8 +44,8 @@ struct CheckedOutItemsView: View {
             .padding(.horizontal)
 
             List {
-                ForEach(checkedOutRecords) { record in
-                    CheckedOutRecordRow(record: record)
+                ForEach(items) { item in
+                        Text(item.name)
                         .padding(.vertical, 8)
                         .listRowSeparator(.hidden)
                         .listRowInsets(EdgeInsets(top: 10, leading: 15, bottom: 10, trailing: 15))
@@ -66,8 +68,10 @@ struct CheckedOutItemsView: View {
 }
 
 // Row component to display multiple items per person
-struct CheckedOutRecordRow: View {
+struct CheckedOutRecordRow: View
+{
     let record: CheckedOutRecord
+    @Query private var items: [ApplicationData]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
