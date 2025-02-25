@@ -35,7 +35,7 @@ struct ScannerView: View {
                     }
                 
                 // Code Scanner
-                CodeScannerView(codeTypes: [.code128, .qr, .ean8, .code39, .code93, .ean13], simulatedData: "https://catalogit.app/collections/d8ad2d30-d37f-11ef-942e-a9ab53bb22fc/entries/4d18cef0-d384-11ef-970e-0dcfb0428747") { response in
+                CodeScannerView(codeTypes: [.code128, .qr, .ean8, .code39, .code93, .ean13], simulatedData: "https://catalogit.app/collections/d8ad2d30-d37f-11ef-942e-a9ab53bb22fc/entries/badcfa50-d385-11ef-970e-0dcfb0428747") { response in
                     switch response {
                     case .success(let result):
                         print("Found code: \(result.string)")
