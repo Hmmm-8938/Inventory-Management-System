@@ -110,7 +110,7 @@ struct ScannerView: View {
     }
 
     func fetchTitlesFromAPI(result: String, completion: @escaping ([String]?) -> Void) {
-        let apiURL = "http://127.0.0.1:5000/scrape/\(result)"  // Pass scanned result dynamically
+        let apiURL = "https://usable-logically-squirrel.ngrok-free.app/scrape/\(result)"  // Pass scanned result dynamically
         guard let url = URL(string: apiURL) else {
             print("Invalid URL")
             completion(nil)
