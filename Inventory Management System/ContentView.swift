@@ -10,7 +10,8 @@ import SwiftData
 import CodeScanner
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
+    
+    @Environment(\.modelContext) private var context
     @Query private var items: [Item]
     @Environment(\.colorScheme) private var colorScheme
     
@@ -32,7 +33,7 @@ struct ContentView: View {
                             .scaledToFit()
                             .frame(width: 300, height: 150)
                         
-                        Text("BioFact Management System")
+                        Text("Educational Resource Collection Digital Signout")
                             .font(.title)
                             .fontWeight(.bold)
                             .multilineTextAlignment(.center)
