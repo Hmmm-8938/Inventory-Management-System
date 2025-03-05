@@ -7,7 +7,7 @@
 import SwiftUI
 import SwiftData
 import CodeScanner
-
+ 
 struct ContentView: View {
    
    @Environment(\.modelContext) private var context
@@ -74,7 +74,7 @@ struct ContentView: View {
        }
    }
 }
-
+ 
 // Updated button design to look cooler
 struct ActionButton<Destination: View>: View {
    let title: String
@@ -110,7 +110,7 @@ struct ActionButton<Destination: View>: View {
        }
    }
 }
-
+ 
 // Extension to create Color from hex code
 extension Color {
    init(hex: String) {
@@ -137,7 +137,7 @@ extension Color {
        )
    }
 }
-
+ 
 #Preview {
    ContentView()
        .modelContainer(for: Item.self, inMemory: true)

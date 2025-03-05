@@ -1,16 +1,17 @@
 import SwiftUI
 import CodeScanner
-import Foundation
 import SwiftData
 
 struct ScannerView: View {
     @Environment(\.presentationMode) private var presentationMode
     @Environment(\.modelContext) private var context
-    @Query private var items: [ApplicationData]
+    @Query private var items: [ApplicationData] // This should reflect stored items
     
-    @State private var isLoading: Bool = false   // Controls loading indicator
-    @State private var showConfirmation: Bool = false  // Shows confirmation for 3 sec
-    @State private var lastScannedItemName: String? = nil // Holds the name of the last scanned item
+    @State private var isLoading: Bool = false
+    @State private var showConfirmation: Bool = false
+    @State private var showFailure: Bool = false
+    @State private var lastScannedItemName: String? = nil
+    @State private var refreshID: UUID = UUID()  // Refresh trigger
 
     var body: some View {
         ZStack {
@@ -18,15 +19,11 @@ struct ScannerView: View {
                 Spacer()
                     .navigationBarBackButtonHidden(true)
                     .toolbar {
-                        ToolbarItem (placement: .navigationBarLeading) {
+                        ToolbarItem(placement: .navigationBarLeading) {
                             HStack {
-                                Button(action: {
-                                    presentationMode.wrappedValue.dismiss()
-                                }) {
+                                Button(action: { presentationMode.wrappedValue.dismiss() }) {
                                     Image(systemName: "house")
-                                        .foregroundColor(.blue)
                                     Text("Home")
-                                        .foregroundColor(.blue)
                                 }
                                 Spacer()
                                 Text("Scan Code")
@@ -35,29 +32,31 @@ struct ScannerView: View {
                     }
                 
                 // Code Scanner
-                CodeScannerView(codeTypes: [.code128, .qr, .ean8, .code39, .code93, .ean13], simulatedData: "https://catalogit.app/collections/d8ad2d30-d37f-11ef-942e-a9ab53bb22fc/entries/badcfa50-d385-11ef-970e-0dcfb0428747") { response in
+                CodeScannerView(codeTypes: [.code128, .qr, .ean8, .code39, .code93, .ean13]) { response in
                     switch response {
                     case .success(let result):
-                        print("Found code: \(result.string)")
+                        print("Scanned code: \(result.string)")
                         addItem(result: result.string)
                     case .failure(let error):
-                        print(error.localizedDescription)
+                        print("Scanner error: \(error.localizedDescription)")
+                        triggerFailure()
                     }
                 }
+                .id(refreshID) // Force refresh when ID changes
             }
             
-            // Show loading indicator while fetching
+            // Loading indicator
             if isLoading {
                 ProgressView("Fetching data...")
                     .progressViewStyle(CircularProgressViewStyle(tint: .blue))
                     .font(.title)
                     .padding()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color.white.opacity(0.7), alignment: .center)
+                    .background(Color.white.opacity(0.7))
                     .cornerRadius(10)
             }
             
-            // Show confirmation message when title is found (disappears after 3 sec)
+            // Success confirmation
             if showConfirmation, let itemName = lastScannedItemName {
                 VStack {
                     Text("Item Added Successfully!")
@@ -75,69 +74,107 @@ struct ScannerView: View {
                 .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.green, lineWidth: 2))
                 .transition(.scale)
             }
+            
+            // Failure message
+            if showFailure {
+                VStack {
+                    Text("Failed to Fetch Item")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.red)
+                    Text("Please try again.")
+                        .font(.headline)
+                        .padding(.top, 10)
+                }
+                .padding()
+                .background(Color.white.opacity(0.8))
+                .cornerRadius(10)
+                .frame(width: 300, height: 150)
+                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.red, lineWidth: 2))
+                .transition(.scale)
+            }
         }
     }
     
     func addItem(result: String) {
-        isLoading = true  // Start loading
-        
+        isLoading = true
+
         fetchTitlesFromAPI(result: result) { titles in
             DispatchQueue.main.async {
-                isLoading = false  // Stop loading
+                self.isLoading = false
                 
                 guard let titles = titles else {
-                    print("Failed to fetch titles, items not saved.")
+                    self.triggerFailure()
                     return
                 }
                 
+                // Insert new items into the context
                 for title in titles {
                     let item = ApplicationData(name: title)
-                    context.insert(item)
+                    self.context.insert(item)
                 }
                 
-                // Show confirmation message with the last scanned item name
-                if let firstTitle = titles.first {
-                    lastScannedItemName = firstTitle
+                // Save to the context
+                do {
+                    try self.context.save() // Explicitly save
+                    print("Saved items: \(items.map { $0.name })") // Debugging
+                } catch {
+                    print("Failed to save context: \(error.localizedDescription)")
                 }
-                showConfirmation = true
                 
-                // Hide confirmation message after 3 seconds
+                self.lastScannedItemName = titles.first
+                self.showConfirmation = true
+                
+                // Add item to Firestore
+                FirestoreService.shared.addInventoryItem(itemID: result, name: titles.first ?? "Unknown", category: "General", user: "User") { success in
+                    if success {
+                        print("Successfully added to Firestore")
+                    } else {
+                        print("Failed to add to Firestore")
+                    }
+                }
+
                 DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                    showConfirmation = false
+                    self.showConfirmation = false
+                    refreshScanner()  // Refresh scanner after success
                 }
             }
         }
     }
-
+    
     func fetchTitlesFromAPI(result: String, completion: @escaping ([String]?) -> Void) {
-        let apiURL = "https://usable-logically-squirrel.ngrok-free.app/scrape/\(result)"  // Pass scanned result dynamically
+        let apiURL = "https://usable-logically-squirrel.ngrok-free.app/scrape/\(result)"
         guard let url = URL(string: apiURL) else {
-            print("Invalid URL")
             completion(nil)
             return
         }
-        
-        let task = URLSession.shared.dataTask(with: url) { data, response, error in
+
+        let task = URLSession.shared.dataTask(with: url) { data, _, error in
             guard let data = data, error == nil else {
-                print("Error: \(error?.localizedDescription ?? "Unknown error")")
                 completion(nil)
                 return
             }
-            
+
             do {
                 let json = try JSONDecoder().decode([String: [String]].self, from: data)
-                if let titles = json["titles"] {
-                    print("Fetched Titles: \(titles)") // Will print only after fetching
-                    completion(titles)
-                } else {
-                    completion(nil)
-                }
+                completion(json["titles"])
             } catch {
-                print("Error decoding JSON: \(error)")
                 completion(nil)
             }
         }
         
         task.resume()
+    }
+
+    func triggerFailure() {
+        showFailure = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            showFailure = false
+            refreshScanner() // Refresh scanner after failure
+        }
+    }
+    
+    func refreshScanner() {
+        refreshID = UUID()  // Reset refresh trigger for scanner
     }
 }
