@@ -2,14 +2,16 @@ import SwiftUI
 import FirebaseCore
 import UserNotifications
 import SwiftData
+import Firebase
+import FirebaseAppCheck
 import FirebaseFirestore
-
+ 
 @main
 struct Inventory_Management_SystemApp: App {
     
     // Register AppDelegate for Firebase and notifications
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-
+ 
     // Register SwiftData model container safely
     var sharedModelContainer: ModelContainer = {
         do {
@@ -19,7 +21,7 @@ struct Inventory_Management_SystemApp: App {
             fatalError("Failed to initialize model container: \(error.localizedDescription)")
         }
     }()
-
+ 
     var body: some Scene {
         WindowGroup {
             ContentView()
@@ -27,7 +29,7 @@ struct Inventory_Management_SystemApp: App {
         }
     }
 }
-
+ 
 // AppDelegate to handle Firebase and push notifications
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     
@@ -53,13 +55,13 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         completionHandler([.banner, .sound, .badge])
     }
 }
-
+ 
 // FirestoreService for Firebase interaction
 class FirestoreService {
     static let shared = FirestoreService()  // Singleton to easily access FirestoreService
-
+ 
     private let db = Firestore.firestore()
-
+ 
     // Method to add an inventory item to Firestore
     func addInventoryItem(itemID: String, name: String, category: String, user: String, completion: @escaping (Bool) -> Void) {
         
@@ -83,7 +85,7 @@ class FirestoreService {
             }
         }
     }
-
+ 
     // Helper function to extract document ID from a URL or scanned code
     private func extractDocumentID(from scannedCode: String) -> String {
         // Assuming the scanned code is a URL like 'https://catalogit.app/entry/4d18cef0-d384-11ef-970e-0dcfb0428747'
