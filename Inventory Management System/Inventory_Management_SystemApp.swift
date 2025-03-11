@@ -5,9 +5,11 @@ import SwiftData
 import Firebase
 import FirebaseAppCheck
 import FirebaseFirestore
+import Foundation
  
 @main
-struct Inventory_Management_SystemApp: App {
+struct Inventory_Management_SystemApp: App
+{
     
     // Register AppDelegate for Firebase and notifications
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
@@ -29,6 +31,36 @@ struct Inventory_Management_SystemApp: App {
         }
     }
 }
+
+
+
+//struct InventoryItem
+//{
+//    var id: String
+//    var name: String
+//    var category: String
+//    var lastCheckedOutBy: String
+//    var timestamp: Date
+//}
+
+@Model
+class InventoryItem {
+    @Attribute var id: String // Define the id attribute
+    @Attribute var name: String
+    @Attribute var category: String
+    @Attribute var lastCheckedOutBy: String
+    @Attribute var timestamp: Date
+    
+    // Required initializer
+    init(id: String, name: String, category: String, lastCheckedOutBy: String, timestamp: Date) {
+        self.id = id
+        self.name = name
+        self.category = category
+        self.lastCheckedOutBy = lastCheckedOutBy
+        self.timestamp = timestamp
+    }
+}
+
  
 // AppDelegate to handle Firebase and push notifications
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
@@ -57,11 +89,16 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
 }
  
 // FirestoreService for Firebase interaction
+
 class FirestoreService {
     static let shared = FirestoreService()  // Singleton to easily access FirestoreService
- 
+    
     private let db = Firestore.firestore()
- 
+    
+    func getFirestoreDB() -> Firestore {
+        return db
+    }
+    
     // Method to add an inventory item to Firestore
     func addInventoryItem(itemID: String, name: String, category: String, user: String, completion: @escaping (Bool) -> Void) {
         
@@ -85,7 +122,51 @@ class FirestoreService {
             }
         }
     }
- 
+
+    func syncLocalDataWithFirestore(localContext: ModelContext, fetchedItems: [InventoryItem], completion: @escaping (Bool) -> Void) {
+        Task {
+            do {
+                // Fetch existing items from local context
+                let fetchDescriptor = FetchDescriptor<InventoryItem>()
+                let existingItems = try localContext.fetch(fetchDescriptor)
+                print("Existing items in local context: \(existingItems.map { $0.name })") // Debugging
+                
+                // Remove items that are in local but not in Firestore
+                for localItem in existingItems {
+                    if !fetchedItems.contains(where: { $0.id == localItem.id }) {
+                        localContext.delete(localItem)
+                        print("Deleted item: \(localItem.name)") // Debugging
+                    }
+                }
+
+                // Add or update items from Firestore
+                for fetchedItem in fetchedItems {
+                    if let existingItem = existingItems.first(where: { $0.id == fetchedItem.id }) {
+                        // Update existing item
+                        existingItem.name = fetchedItem.name
+                        existingItem.category = fetchedItem.category
+                        existingItem.lastCheckedOutBy = fetchedItem.lastCheckedOutBy
+                        existingItem.timestamp = fetchedItem.timestamp
+                        print("Updated item: \(existingItem.name)") // Debugging
+                    } else {
+                        // Insert new item
+                        localContext.insert(fetchedItem)
+                        print("Inserted new item: \(fetchedItem.name)") // Debugging
+                    }
+                }
+                
+                // Save the changes to the local context
+                try localContext.save()
+                print("Local context saved.") // Debugging
+                completion(true)
+            } catch {
+                print("Error syncing local data with Firestore: \(error.localizedDescription)")
+                completion(false)
+            }
+        }
+    }
+
+
     // Helper function to extract document ID from a URL or scanned code
     private func extractDocumentID(from scannedCode: String) -> String {
         // Assuming the scanned code is a URL like 'https://catalogit.app/entry/4d18cef0-d384-11ef-970e-0dcfb0428747'
