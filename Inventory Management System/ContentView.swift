@@ -47,7 +47,7 @@ struct ContentView: View {
                        ActionButton(
                            title: "Check Out",
                            icon: "arrow.right.circle.fill",
-                           destination: ScannerView(),
+                           destination: CheckoutView(),
                            gradient: Gradient(colors: [Color(hex: "E87722"), Color(hex: "E87722")])
                        )
                        

@@ -1,13 +1,10 @@
 import SwiftUI
-import SwiftData
 import FirebaseFirestore
 
 struct CheckedOutItemsView: View {
     @Environment(\.presentationMode) private var presentationMode
-    @Environment(\.modelContext) private var modelContext  // Add modelContext from SwiftData
-    @Query private var items: [ApplicationData] // Query SwiftData storage
     @State private var isSyncing = false
-    @State private var syncStatusMessage = ""
+    @State private var items: [InventoryItem] = []
 
     var body: some View {
         VStack {
@@ -30,20 +27,19 @@ struct CheckedOutItemsView: View {
 
             List {
                 if items.isEmpty {
-                    Text("No items scanned yet.")
+                    Text("No items checked out.")
                         .foregroundColor(.gray)
                         .italic()
                         .padding()
                 } else {
-                    ForEach(items) { item in
+                    ForEach(items, id: \..id) { item in
                         Text(item.name)
                             .padding(.vertical, 8)
                     }
                 }
             }
             .onAppear {
-                print("Fetched items: \(items.map { $0.name })") // Debugging
-                syncInventoryData() // Sync with Firestore when the view appears
+                syncInventoryData()
             }
 
             if isSyncing {
@@ -52,7 +48,7 @@ struct CheckedOutItemsView: View {
             }
         }
         .padding()
-        .navigationBarBackButtonHidden(true) // Hide default back button
+        .navigationBarBackButtonHidden(true)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 HStack {
@@ -70,26 +66,23 @@ struct CheckedOutItemsView: View {
         }
     }
     
-    // Function to trigger sync operation with Firestore
+    // Function to fetch inventory data directly from Firestore
     private func syncInventoryData() {
         isSyncing = true
-        
-        // Fetch items from Firestore
         FirestoreService.shared.getFirestoreDB().collection("inventory").getDocuments { snapshot, error in
+            isSyncing = false
             if let error = error {
                 print("Error fetching data from Firestore: \(error.localizedDescription)")
-                isSyncing = false
                 return
             }
             
             guard let documents = snapshot?.documents else {
                 print("No inventory items found.")
-                isSyncing = false
                 return
             }
             
             // Map Firestore documents to InventoryItem models
-            let fetchedItems: [InventoryItem] = documents.compactMap { doc -> InventoryItem? in
+            items = documents.compactMap { doc -> InventoryItem? in
                 let data = doc.data()
                 guard let name = data["name"] as? String,
                       let category = data["category"] as? String,
@@ -106,17 +99,6 @@ struct CheckedOutItemsView: View {
                     timestamp: timestamp.dateValue()
                 )
             }
-            
-            // Sync the local data with Firestore
-            FirestoreService.shared.syncLocalDataWithFirestore(localContext: modelContext, fetchedItems: fetchedItems) { success in
-                isSyncing = false
-                if success {
-                    print("Sync successful!")
-                } else {
-                    print("Sync failed")
-                }
-            }
         }
     }
-
 }

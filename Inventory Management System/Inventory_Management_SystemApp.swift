@@ -1,70 +1,41 @@
 import SwiftUI
 import FirebaseCore
 import UserNotifications
-import SwiftData
 import Firebase
 import FirebaseAppCheck
 import FirebaseFirestore
 import Foundation
- 
+
 @main
-struct Inventory_Management_SystemApp: App
-{
-    
+struct Inventory_Management_SystemApp: App {
     // Register AppDelegate for Firebase and notifications
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
- 
-    // Register SwiftData model container safely
-    var sharedModelContainer: ModelContainer = {
-        do {
-            let config = ModelConfiguration(for: ApplicationData.self, isStoredInMemoryOnly: false)
-            return try ModelContainer(for: ApplicationData.self, configurations: config) // Pass single config, not array
-        } catch {
-            fatalError("Failed to initialize model container: \(error.localizedDescription)")
-        }
-    }()
- 
+    
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .modelContainer(sharedModelContainer) // Attach SwiftData model container
         }
     }
 }
 
-
-
-//struct InventoryItem
-//{
-//    var id: String
-//    var name: String
-//    var category: String
-//    var lastCheckedOutBy: String
-//    var timestamp: Date
-//}
-
-@Model
-class InventoryItem {
-    @Attribute var id: String // Define the id attribute
-    @Attribute var name: String
-    @Attribute var category: String
-    @Attribute var lastCheckedOutBy: String
-    @Attribute var timestamp: Date
-    
-    // Required initializer
-    init(id: String, name: String, category: String, lastCheckedOutBy: String, timestamp: Date) {
-        self.id = id
-        self.name = name
-        self.category = category
-        self.lastCheckedOutBy = lastCheckedOutBy
-        self.timestamp = timestamp
-    }
+// InventoryItem Model (No Local Storage)
+struct InventoryItem: Identifiable {
+    var id: String
+    var name: String
+    var category: String
+    var lastCheckedOutBy: String
+    var timestamp: Date
 }
 
- 
+// InventoryItem Model (No Local Storage)
+struct UserItem: Identifiable {
+    var id: String
+    var userID: String
+    var name: String
+}
+
 // AppDelegate to handle Firebase and push notifications
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
-    
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         FirebaseApp.configure()
@@ -80,101 +51,109 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         return true
     }
     
-    // Handle incoming notifications while the app is in the foreground
     func userNotificationCenter(_ center: UNUserNotificationCenter,
                                 willPresent notification: UNNotification,
                                 withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
         completionHandler([.banner, .sound, .badge])
     }
 }
- 
-// FirestoreService for Firebase interaction
 
+// FirestoreService for Firebase interaction
 class FirestoreService {
-    static let shared = FirestoreService()  // Singleton to easily access FirestoreService
-    
+    static let shared = FirestoreService()  // Singleton
     private let db = Firestore.firestore()
     
     func getFirestoreDB() -> Firestore {
         return db
     }
     
-    // Method to add an inventory item to Firestore
+    // Add an inventory item to Firestore
     func addInventoryItem(itemID: String, name: String, category: String, user: String, completion: @escaping (Bool) -> Void) {
-        
-        // Make sure the itemID doesn't contain any invalid characters (e.g., double slashes, spaces, etc.)
-        // If itemID is a full URL, extract the ID correctly
         let documentID = extractDocumentID(from: itemID)
         
-        // Add to Firestore collection with the valid document ID
         db.collection("inventory").document(documentID).setData([
             "name": name,
             "category": category,
             "lastCheckedOutBy": user,
             "timestamp": Timestamp()
         ]) { error in
-            if let error = error {
-                print("Error adding item: \(error.localizedDescription)")
-                completion(false)
-            } else {
-                print("Item successfully added!")
-                completion(true)
+            completion(error == nil)
+        }
+    }
+    
+    // Fetch all inventory items from Firestore
+    func fetchInventoryItems(completion: @escaping ([InventoryItem]) -> Void) {
+        db.collection("inventory").getDocuments { snapshot, error in
+            guard let documents = snapshot?.documents, error == nil else {
+                print("Error fetching inventory: \(error?.localizedDescription ?? "Unknown error")")
+                completion([])
+                return
             }
+            
+            let items = documents.compactMap { document -> InventoryItem? in
+                let data = document.data()
+                guard let name = data["name"] as? String,
+                      let category = data["category"] as? String,
+                      let lastCheckedOutBy = data["lastCheckedOutBy"] as? String,
+                      let timestamp = data["timestamp"] as? Timestamp else { return nil }
+                
+                return InventoryItem(id: document.documentID, name: name, category: category, lastCheckedOutBy: lastCheckedOutBy, timestamp: timestamp.dateValue())
+            }
+            
+            completion(items)
+        }
+    }
+    
+    // Add an user item to Firestore
+    func addUser(itemID: String, userID: String, name: String, completion: @escaping (Bool) -> Void)
+    {
+        let documentID = extractDocumentID(from: itemID)
+        
+        db.collection("users").document(documentID).setData([
+            "userID": userID,
+            "name": name,
+        ]) { error in
+            completion(error == nil)
+        }
+    }
+    
+    // Fetch all users from FireStore
+    func fetchUsers(completion: @escaping ([UserItem]) -> Void) {
+        db.collection("users").getDocuments { snapshot, error in
+            guard let documents = snapshot?.documents, error == nil else {
+                print("Error fetching users: \(error?.localizedDescription ?? "Unknown error")")
+                completion([])
+                return
+            }
+            
+            let users = documents.compactMap { document -> UserItem? in
+                let data = document.data()
+                guard let userId = data["userID"] as? String,
+                      let name = data["name"] as? String else { return nil } // Fix here
+                
+                return UserItem(id: document.documentID, userID: userId, name: name) // Fix here
+            }
+            
+            completion(users)
         }
     }
 
-    func syncLocalDataWithFirestore(localContext: ModelContext, fetchedItems: [InventoryItem], completion: @escaping (Bool) -> Void) {
-        Task {
-            do {
-                // Fetch existing items from local context
-                let fetchDescriptor = FetchDescriptor<InventoryItem>()
-                let existingItems = try localContext.fetch(fetchDescriptor)
-                print("Existing items in local context: \(existingItems.map { $0.name })") // Debugging
-                
-                // Remove items that are in local but not in Firestore
-                for localItem in existingItems {
-                    if !fetchedItems.contains(where: { $0.id == localItem.id }) {
-                        localContext.delete(localItem)
-                        print("Deleted item: \(localItem.name)") // Debugging
-                    }
-                }
+    
 
-                // Add or update items from Firestore
-                for fetchedItem in fetchedItems {
-                    if let existingItem = existingItems.first(where: { $0.id == fetchedItem.id }) {
-                        // Update existing item
-                        existingItem.name = fetchedItem.name
-                        existingItem.category = fetchedItem.category
-                        existingItem.lastCheckedOutBy = fetchedItem.lastCheckedOutBy
-                        existingItem.timestamp = fetchedItem.timestamp
-                        print("Updated item: \(existingItem.name)") // Debugging
-                    } else {
-                        // Insert new item
-                        localContext.insert(fetchedItem)
-                        print("Inserted new item: \(fetchedItem.name)") // Debugging
-                    }
-                }
-                
-                // Save the changes to the local context
-                try localContext.save()
-                print("Local context saved.") // Debugging
-                completion(true)
-            } catch {
-                print("Error syncing local data with Firestore: \(error.localizedDescription)")
-                completion(false)
-            }
+    
+    // Delete an inventory item from Firestore
+    func deleteInventoryItem(itemID: String, completion: @escaping (Bool) -> Void) {
+        db.collection("inventory").document(itemID).delete { error in
+            completion(error == nil)
         }
     }
-
-
+    
     // Helper function to extract document ID from a URL or scanned code
     private func extractDocumentID(from scannedCode: String) -> String {
-        // Assuming the scanned code is a URL like 'https://catalogit.app/entry/4d18cef0-d384-11ef-970e-0dcfb0428747'
-        // Extracting the ID part after the last slash
         if let lastSlashIndex = scannedCode.lastIndex(of: "/") {
             let id = scannedCode[lastSlashIndex...]
-            return String(id.dropFirst()) // Remove the leading '/'
+            return String(id.dropFirst())
         }
-        return scannedCode // If not a URL, return the code as is
+        return scannedCode
     }
 }

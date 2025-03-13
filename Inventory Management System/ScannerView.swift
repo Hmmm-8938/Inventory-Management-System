@@ -1,17 +1,15 @@
 import SwiftUI
 import CodeScanner
-import SwiftData
 
 struct ScannerView: View {
     @Environment(\.presentationMode) private var presentationMode
-    @Environment(\.modelContext) private var context
-    @Query private var items: [ApplicationData] // This should reflect stored items
     
     @State private var isLoading: Bool = false
     @State private var showConfirmation: Bool = false
     @State private var showFailure: Bool = false
     @State private var lastScannedItemName: String? = nil
     @State private var refreshID: UUID = UUID()  // Refresh trigger
+    @State private var scannedItems: [String] = [] // Store scanned items locally
 
     var body: some View {
         ZStack {
@@ -108,20 +106,7 @@ struct ScannerView: View {
                     return
                 }
                 
-                // Insert new items into the context
-                for title in titles {
-                    let item = ApplicationData(name: title)
-                    self.context.insert(item)
-                }
-                
-                // Save to the context
-                do {
-                    try self.context.save() // Explicitly save
-                    print("Saved items: \(items.map { $0.name })") // Debugging
-                } catch {
-                    print("Failed to save context: \(error.localizedDescription)")
-                }
-                
+                self.scannedItems.append(contentsOf: titles)
                 self.lastScannedItemName = titles.first
                 self.showConfirmation = true
                 
