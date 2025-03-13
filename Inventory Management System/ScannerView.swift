@@ -143,7 +143,7 @@ struct ScannerView: View {
     }
     
     func fetchTitlesFromAPI(result: String, completion: @escaping ([String]?) -> Void) {
-        let apiURL = "https://usable-logically-squirrel.ngrok-free.app/scrape/\(result)"
+        let apiURL = "https://sound-scarcely-mite.ngrok-free.app/scrape/\(result)"
         guard let url = URL(string: apiURL) else {
             completion(nil)
             return
