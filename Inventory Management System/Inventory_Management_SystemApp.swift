@@ -22,9 +22,6 @@ struct Inventory_Management_SystemApp: App {
 struct InventoryItem: Identifiable {
     var id: String
     var name: String
-    var category: String
-    var lastCheckedOutBy: String
-    var timestamp: Date
 }
 
 // InventoryItem Model (No Local Storage)
@@ -68,14 +65,12 @@ class FirestoreService {
     }
     
     // Add an inventory item to Firestore
-    func addInventoryItem(itemID: String, name: String, category: String, user: String, completion: @escaping (Bool) -> Void) {
+    func addInventoryItem(itemID: String, name: String, completion: @escaping (Bool) -> Void) {
         let documentID = extractDocumentID(from: itemID)
         
         db.collection("inventory").document(documentID).setData([
+            "itemID": itemID,
             "name": name,
-            "category": category,
-            "lastCheckedOutBy": user,
-            "timestamp": Timestamp()
         ]) { error in
             completion(error == nil)
         }
@@ -93,11 +88,9 @@ class FirestoreService {
             let items = documents.compactMap { document -> InventoryItem? in
                 let data = document.data()
                 guard let name = data["name"] as? String,
-                      let category = data["category"] as? String,
-                      let lastCheckedOutBy = data["lastCheckedOutBy"] as? String,
-                      let timestamp = data["timestamp"] as? Timestamp else { return nil }
+                      let itemID = data["itemID"] as? String else { return nil }
                 
-                return InventoryItem(id: document.documentID, name: name, category: category, lastCheckedOutBy: lastCheckedOutBy, timestamp: timestamp.dateValue())
+                return InventoryItem(id: document.documentID, name: name)
             }
             
             completion(items)

@@ -111,7 +111,7 @@ struct ScannerView: View {
                 self.showConfirmation = true
                 
                 // Add item to Firestore
-                FirestoreService.shared.addInventoryItem(itemID: result, name: titles.first ?? "Unknown", category: "General", user: "User") { success in
+                FirestoreService.shared.addInventoryItem(itemID: result, name: titles.first ?? "Unknown") { success in
                     if success {
                         print("Successfully added to Firestore")
                     } else {

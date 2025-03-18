@@ -50,17 +50,31 @@ struct CheckoutView: View {
                         }
                     
                     // Code Scanner
-                    CodeScannerView(codeTypes: [.code128, .qr, .ean8, .code39, .code93, .ean13]) { response in
+                    CodeScannerView(codeTypes: [.qr]) { response in
                         switch response {
                         case .success(let result):
-                            print("Scanned code: \(result.string)")
-                            addItem(result: result.string)
+                            let scannedItemID = result.string
+                            print("Scanning item QR Code: \(scannedItemID)")
+                            // Check if item exists and fetch name
+                            checkIfItemExists(itemID: scannedItemID) { exists, name in
+                                if exists, let itemName = name
+                                {
+                                    print("Item already exists: \(scannedItemID) - Name: \(itemName)")
+                                }
+                                else
+                                {
+                                    print("Adding new item: \(scannedItemID)")
+                                    // Handle adding new item if necessary
+                                    addItem(result: scannedItemID) // Add the item if it doesn't exist
+                                }
+                            }
                         case .failure(let error):
                             print("Scanner error: \(error.localizedDescription)")
                             triggerFailure()
                         }
                     }
                     .id(refreshID) // Force refresh when ID changes
+
                 }
                 
                 // Loading indicator
@@ -190,9 +204,9 @@ struct CheckoutView: View {
                 self.showConfirmation = true
                 
                 // Add item to Firestore-
-                FirestoreService.shared.addInventoryItem(itemID: result, name: titles.first ?? "Unknown", category: "General", user: loggedUser ?? "Unknown User") { success in
+                FirestoreService.shared.addInventoryItem(itemID: result, name: titles.first ?? "Unknown") { success in
                     if success {
-                        print("Successfully added to Frestore")
+                        print("Successfully added to Firestore")
                     } else {
                         print("Failed to add to Firestore")
                     }
@@ -292,6 +306,46 @@ struct CheckoutView: View {
                 }
             }
     }
+    
+    private func checkIfItemExists(itemID: String, completion: @escaping (Bool, String?) -> Void) {
+        print("Checking if item exists in Firestore: \(itemID)")
+        FirestoreService.shared.getFirestoreDB().collection("inventory")
+            .whereField("itemID", isEqualTo: itemID)
+            .getDocuments { snapshot, error in
+                if let error = error {
+                    print("Error checking item: \(error.localizedDescription)")
+                    completion(false, nil)
+                    return
+                }
+                
+                if let document = snapshot?.documents.first {
+                    let name = document.data()["name"] as? String ?? "Unknown"
+                    print("Item found: \(name)")
+                    
+                    // Refresh scanner after item is found in Firestore
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                        self.refreshScanner() // Refresh the scanner
+                    }
+                    
+                    // Show confirmation message for fetched item
+                    DispatchQueue.main.async {
+                        self.lastScannedItemName = name
+                        self.showConfirmation = true
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 3)
+                        {
+                            self.showConfirmation = false
+                        }
+                    }
+                    
+                    completion(true, name) // Item exists
+                } else {
+                    print("Item not found.")
+                    completion(false, nil) // Item does not exist
+                }
+            }
+    }
+
+
 
 
 

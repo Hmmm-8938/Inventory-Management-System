@@ -85,18 +85,11 @@ struct CheckedOutItemsView: View {
             items = documents.compactMap { doc -> InventoryItem? in
                 let data = doc.data()
                 guard let name = data["name"] as? String,
-                      let category = data["category"] as? String,
-                      let lastCheckedOutBy = data["lastCheckedOutBy"] as? String,
-                      let timestamp = data["timestamp"] as? Timestamp else {
-                    return nil
-                }
+                      let itemID = data["itemID"] as? String else { return nil }
                 
                 return InventoryItem(
                     id: doc.documentID,
-                    name: name,
-                    category: category,
-                    lastCheckedOutBy: lastCheckedOutBy,
-                    timestamp: timestamp.dateValue()
+                    name: name
                 )
             }
         }
