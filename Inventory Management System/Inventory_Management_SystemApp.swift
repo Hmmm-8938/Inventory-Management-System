@@ -34,6 +34,7 @@ struct UserItem: Identifiable {
     var id: String
     var userID: String
     var name: String
+    var userPinHash: String
 }
 
 // AppDelegate to handle Firebase and push notifications
@@ -115,13 +116,14 @@ class FirestoreService {
     }
     
     // Add an user item to Firestore
-    func addUser(itemID: String, userID: String, name: String, completion: @escaping (Bool) -> Void)
+    func addUser(itemID: String, userID: String, name: String, userPinHash: String, completion: @escaping (Bool) -> Void)
     {
         let documentID = extractDocumentID(from: itemID)
         
         db.collection("users").document(documentID).setData([
             "userID": userID,
             "name": name,
+            "userPinHash": userPinHash,
         ]) { error in
             completion(error == nil)
         }
@@ -139,9 +141,10 @@ class FirestoreService {
             let users = documents.compactMap { document -> UserItem? in
                 let data = document.data()
                 guard let userId = data["userID"] as? String,
-                      let name = data["name"] as? String else { return nil } // Fix here
+                      let name = data["name"] as? String,
+                      let userPinHash = data["userPinHash"] as? String else { return nil } // Fix here
                 
-                return UserItem(id: document.documentID, userID: userId, name: name) // Fix here
+                return UserItem(id: document.documentID, userID: userId, name: name, userPinHash: userPinHash) // Fix here
             }
             
             completion(users)

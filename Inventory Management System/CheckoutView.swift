@@ -30,7 +30,7 @@ struct CheckoutView: View {
             {
                 VStack
                 {
-                    Spacer()
+                    VStack{}
                         .navigationBarBackButtonHidden(true)
                         .toolbar
                         {
@@ -45,10 +45,10 @@ struct CheckoutView: View {
                                     }
                                     Spacer()
                                     Text("Welcome \(loggedUser ?? "user")! Scan Biofact QR Code!")
+                                        .fontWeight(.thin)
                                 }
                             }
                         }
-                    
                     // Code Scanner
                     CodeScannerView(codeTypes: [.qr]) { response in
                         switch response {
@@ -133,7 +133,7 @@ struct CheckoutView: View {
             {
                 VStack
                 {
-                    Spacer()
+                    VStack{}
                         .navigationBarBackButtonHidden(true)
                         .toolbar
                         {
@@ -147,7 +147,8 @@ struct CheckoutView: View {
                                         Text("Home")
                                     }
                                     Spacer()
-                                    Text("Scan User ID // Enter User Credentials")
+                                    Text("Please scan User ID!")
+                                        .fontWeight(.thin)
                                 }
                             }
                         }
@@ -170,7 +171,7 @@ struct CheckoutView: View {
                                 else
                                 {
                                     print("Adding new user: \(scannedUserID)")
-                                    addUser(result: scannedUserID, userID: scannedUserID, name: "Tester2")
+                                    addUser(result: scannedUserID, userID: scannedUserID, name: "Tester2", userPinHash: "userPinHash")
                                 }
                             }
                             case .failure(let error):
@@ -274,12 +275,14 @@ struct CheckoutView: View {
             users = documents.compactMap { doc -> UserItem? in
                 let data = doc.data()
                 guard let userID = data["userID"] as? String,
-                      let name = data["name"] as? String else { return nil }
+                      let name = data["name"] as? String,
+                let userPinHash = data["userPinHash"] as? String else { return nil }
                 
                 return UserItem(
                     id: doc.documentID,
                     userID: userID,
-                    name: name
+                    name: name,
+                    userPinHash: userPinHash
                 )
             }
         }
@@ -345,9 +348,9 @@ struct CheckoutView: View {
             }
     }
     
-    func addUser(result: String, userID: String, name: String) {
+    func addUser(result: String, userID: String, name: String, userPinHash: String) {
         // Add user to Firestore
-        FirestoreService.shared.addUser(itemID: result, userID: userID, name: name) { success in
+        FirestoreService.shared.addUser(itemID: result, userID: userID, name: name, userPinHash: userPinHash) { success in
             if success {
                 print("Successfully added user to Firestore")
             } else {
