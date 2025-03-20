@@ -344,11 +344,6 @@ struct CheckoutView: View {
                 }
             }
     }
-
-
-
-
-
     
     func addUser(result: String, userID: String, name: String) {
         // Add user to Firestore

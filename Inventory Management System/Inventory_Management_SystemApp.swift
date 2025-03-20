@@ -24,6 +24,11 @@ struct InventoryItem: Identifiable {
     var name: String
 }
 
+struct CheckoutItem: Identifiable {
+    var id: String
+    var name: String
+}
+
 // InventoryItem Model (No Local Storage)
 struct UserItem: Identifiable {
     var id: String
@@ -66,6 +71,18 @@ class FirestoreService {
     
     // Add an inventory item to Firestore
     func addInventoryItem(itemID: String, name: String, completion: @escaping (Bool) -> Void) {
+        let documentID = extractDocumentID(from: itemID)
+        
+        db.collection("inventory").document(documentID).setData([
+            "itemID": itemID,
+            "name": name,
+        ]) { error in
+            completion(error == nil)
+        }
+    }
+    
+    // Add an inventory item to Firestore
+    func addCheckoutItem(itemID: String, name: String, completion: @escaping (Bool) -> Void) {
         let documentID = extractDocumentID(from: itemID)
         
         db.collection("inventory").document(documentID).setData([
