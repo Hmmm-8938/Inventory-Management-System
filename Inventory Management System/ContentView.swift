@@ -2,17 +2,25 @@
 //  ContentView.swift
 //  Inventory Management System
 //
-//  Created by Benjamin Mellott on 2025-01-28.
+//  Created by Benjamin Mellott & Maxwell Souchereau on 2025-01-28.
 //
+
 import SwiftUI
 import SwiftData
 import CodeScanner
+import WebKit
  
 struct ContentView: View {
    
    @Environment(\.modelContext) private var context
    @Query private var items: [Item]
    @Environment(\.colorScheme) private var colorScheme
+   
+   // Admin functionality states
+   @State private var showAdminLogin = false
+   @State private var adminPassword = ""
+   @State private var showAdminWebView = false
+   @State private var showInvalidPasswordAlert = false
    
    var body: some View {
        NavigationStack {
@@ -32,7 +40,7 @@ struct ContentView: View {
                            .scaledToFit()
                            .frame(width: 300, height: 150)
                        
-                       Text("Educational Resource Collection Digital Signout")
+                       Text("E.R.C. Digital Signout")
                            .font(.title)
                            .fontWeight(.bold)
                            .multilineTextAlignment(.center)
@@ -67,9 +75,158 @@ struct ContentView: View {
                    }
                    
                    Spacer()
+                   
+                   // Admin button at bottom - styled to match but more subtle
+                   HStack {
+                       Button(action: {
+                           showAdminLogin = true
+                       }) {
+                           HStack {
+                               Image(systemName: "lock.shield")
+                                   .font(.body)
+                               Text("Admin")
+                                   .font(.subheadline)
+                                   .fontWeight(.medium)
+                           }
+                           .padding(.vertical, 10)
+                           .padding(.horizontal, 16)
+                           .background(
+                               LinearGradient(
+                                   gradient: Gradient(colors: [Color(hex: "001058").opacity(0.6), Color(hex: "001058").opacity(0.8)]),
+                                   startPoint: .leading,
+                                   endPoint: .trailing
+                               )
+                           )
+                           .foregroundColor(.white)
+                           .clipShape(RoundedRectangle(cornerRadius: 12))
+                           .overlay(
+                               RoundedRectangle(cornerRadius: 12)
+                                   .stroke(.white.opacity(0.3), lineWidth: 1)
+                           )
+                       }
+                       
+                       Spacer()
+                   }
+                   .padding(.top, -20) // Adjust to position properly
                }
                .padding(.horizontal, 24)
                .padding(.bottom, 40)
+           }
+           // Admin login sheet
+           .sheet(isPresented: $showAdminLogin) {
+               ZStack {
+                   // Use the same background color as the main view
+                   Color(hex: "001058").opacity(0.95)
+                       .ignoresSafeArea()
+                   
+                   VStack(spacing: 24) {
+                       Text("Administrator Login")
+                           .font(.title2)
+                           .fontWeight(.bold)
+                           .foregroundColor(.white)
+                       
+                       SecureField("Password", text: $adminPassword)
+                           .padding()
+                           .background(Color.white.opacity(0.2))
+                           .cornerRadius(12)
+                           .padding(.horizontal)
+                           .foregroundColor(.white)
+                           .autocapitalization(.none)
+                           .overlay(
+                               RoundedRectangle(cornerRadius: 12)
+                                   .stroke(.white.opacity(0.3), lineWidth: 1)
+                                   .padding(.horizontal)
+                           )
+                       
+                       HStack(spacing: 20) {
+                           // Login button
+                           Button(action: {
+                               if adminPassword == "password" {
+                                   adminPassword = "" // Clear password
+                                   showAdminLogin = false // Close dialog
+                                   showAdminWebView = true // Show the web view
+                               } else {
+                                   showInvalidPasswordAlert = true
+                               }
+                           }) {
+                               Text("Login")
+                                   .font(.title3)
+                                   .fontWeight(.semibold)
+                                   .frame(maxWidth: .infinity)
+                                   .padding(.vertical, 14)
+                                   .background(
+                                       LinearGradient(
+                                           gradient: Gradient(colors: [Color(hex: "D40F7D"), Color(hex: "D40F7D")]),
+                                           startPoint: .leading,
+                                           endPoint: .trailing
+                                       )
+                                   )
+                                   .foregroundColor(.white)
+                                   .cornerRadius(12)
+                                   .overlay(
+                                       RoundedRectangle(cornerRadius: 12)
+                                           .stroke(.white.opacity(0.3), lineWidth: 1)
+                                   )
+                           }
+                           
+                           // Cancel button
+                           Button(action: {
+                               adminPassword = "" // Clear password
+                               showAdminLogin = false // Close dialog
+                           }) {
+                               Text("Cancel")
+                                   .font(.title3)
+                                   .fontWeight(.semibold)
+                                   .frame(maxWidth: .infinity)
+                                   .padding(.vertical, 14)
+                                   .background(Color.gray.opacity(0.3))
+                                   .foregroundColor(.white)
+                                   .cornerRadius(12)
+                                   .overlay(
+                                       RoundedRectangle(cornerRadius: 12)
+                                           .stroke(.white.opacity(0.3), lineWidth: 1)
+                                   )
+                           }
+                       }
+                       .padding(.horizontal)
+                   }
+                   .padding(.vertical, 40)
+                   .alert(isPresented: $showInvalidPasswordAlert) {
+                       Alert(
+                           title: Text("Invalid Password"),
+                           message: Text("The password you entered is incorrect."),
+                           dismissButton: .default(Text("Try Again"))
+                       )
+                   }
+               }
+               .presentationDetents([.height(280)])
+           }
+           // Admin web view
+           .fullScreenCover(isPresented: $showAdminWebView) {
+               ZStack {
+                   AdminWebView(url: URL(string: "https://inventory-management-admin-eight.vercel.app")!)
+                       .ignoresSafeArea()
+                   
+                   // Close button
+                   VStack {
+                       HStack {
+                           Spacer()
+                           Button(action: {
+                               showAdminWebView = false
+                           }) {
+                               Image(systemName: "xmark.circle.fill")
+                                   .font(.title)
+                                   .foregroundColor(.white)
+                                   .padding(8)
+                                   .background(Color.black.opacity(0.7))
+                                   .clipShape(Circle())
+                                   .padding()
+                                   .shadow(radius: 3)
+                           }
+                       }
+                       Spacer()
+                   }
+               }
            }
        }
    }
@@ -83,7 +240,10 @@ struct ActionButton<Destination: View>: View {
    let gradient: Gradient
    
    var body: some View {
-       NavigationLink(destination: destination) {
+       NavigationLink(destination:
+          destination
+            .navigationBarBackButtonHidden(true) // Hide the back button
+       ) {
            HStack {
                Image(systemName: icon)
                    .font(.title2)
@@ -109,6 +269,21 @@ struct ActionButton<Destination: View>: View {
            )
        }
    }
+}
+
+// WebView for Admin Panel
+struct AdminWebView: UIViewRepresentable {
+    let url: URL
+    
+    func makeUIView(context: Context) -> WKWebView {
+        let webView = WKWebView()
+        webView.load(URLRequest(url: url))
+        return webView
+    }
+    
+    func updateUIView(_ uiView: WKWebView, context: Context) {
+        // No update needed
+    }
 }
  
 // Extension to create Color from hex code

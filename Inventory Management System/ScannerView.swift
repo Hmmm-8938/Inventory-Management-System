@@ -1,3 +1,7 @@
+//
+//  ScannerView.swift
+//  Inventory Management System
+//
 import SwiftUI
 import CodeScanner
 
