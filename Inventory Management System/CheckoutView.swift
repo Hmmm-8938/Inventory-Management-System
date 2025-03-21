@@ -7,6 +7,7 @@
 
 import SwiftUI
 import CodeScanner
+import CryptoKit
 
 struct CheckoutView: View {
     @Environment(\.presentationMode) private var presentationMode
@@ -162,8 +163,10 @@ struct CheckoutView: View {
                                 checkIfUserExists(userID: scannedUserID) { exists, name in
                                 if exists, let userName = name
                                 {
+                                    
                                     print("User already exists: \(scannedUserID) - Name: \(userName)")
-                                    DispatchQueue.main.async {
+                                    DispatchQueue.main.async
+                                    {
                                         self.isLoggedIn = true
                                         self.loggedUser = userName
                                     }
@@ -364,5 +367,18 @@ struct CheckoutView: View {
         }
     }
 
+    func sha256WithSalt(_ input: String, salt: Data) -> String {
+        let inputData = Data(input.utf8)
+        let saltedData = salt + inputData  // Append salt to input
+        let hashed = SHA256.hash(data: saltedData)
+        return hashed.map { String(format: "%02x", $0) }.joined()
+    }
+
+    // Generate a random 16-byte salt
+    func generateSalt(length: Int = 16) -> Data {
+        var salt = Data(count: length)
+        _ = salt.withUnsafeMutableBytes { SecRandomCopyBytes(kSecRandomDefault, length, $0.baseAddress!) }
+        return salt
+    }
 
 }
