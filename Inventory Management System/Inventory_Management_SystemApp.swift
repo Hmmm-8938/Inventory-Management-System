@@ -5,6 +5,7 @@ import Firebase
 import FirebaseAppCheck
 import FirebaseFirestore
 import Foundation
+import CryptoKit
 
 @main
 struct Inventory_Management_SystemApp: App {
@@ -35,6 +36,7 @@ struct UserItem: Identifiable {
     var userID: String
     var name: String
     var userPinHash: String
+    var salt: String
 }
 
 // AppDelegate to handle Firebase and push notifications
@@ -116,7 +118,7 @@ class FirestoreService {
     }
     
     // Add an user item to Firestore
-    func addUser(itemID: String, userID: String, name: String, userPinHash: String, completion: @escaping (Bool) -> Void)
+    func addUser(itemID: String, userID: String, name: String, userPinHash: String, salt: Data, completion: @escaping (Bool) -> Void)
     {
         let documentID = extractDocumentID(from: itemID)
         
@@ -124,6 +126,7 @@ class FirestoreService {
             "userID": userID,
             "name": name,
             "userPinHash": userPinHash,
+            "salt": salt,
         ]) { error in
             completion(error == nil)
         }
@@ -142,9 +145,10 @@ class FirestoreService {
                 let data = document.data()
                 guard let userId = data["userID"] as? String,
                       let name = data["name"] as? String,
-                      let userPinHash = data["userPinHash"] as? String else { return nil } // Fix here
+                      let userPinHash = data["userPinHash"] as? String,
+                      let salt = data["salt"] as? String else { return nil } // Fix here
                 
-                return UserItem(id: document.documentID, userID: userId, name: name, userPinHash: userPinHash) // Fix here
+                return UserItem(id: document.documentID, userID: userId, name: name, userPinHash: userPinHash, salt: salt) // Fix here
             }
             
             completion(users)
@@ -168,5 +172,25 @@ class FirestoreService {
             return String(id.dropFirst())
         }
         return scannedCode
+    }
+    
+    // Generate a random 16-byte salt and return it as Data
+    func generateSalt(length: Int = 16) -> Data {
+        var salt = Data(count: length)
+        let result = salt.withUnsafeMutableBytes { SecRandomCopyBytes(kSecRandomDefault, length, $0.baseAddress!) }
+        
+        guard result == errSecSuccess else {
+            fatalError("Failed to generate random salt")
+        }
+        
+        return salt
+    }
+
+    // Hash input with SHA-256 using the provided salt
+    func sha256WithSalt(_ input: String, salt: Data) -> String {
+        let inputData = Data(input.utf8)
+        let saltedData = salt + inputData  // Append salt to input
+        let hashed = SHA256.hash(data: saltedData)
+        return hashed.map { String(format: "%02x", $0) }.joined()
     }
 }

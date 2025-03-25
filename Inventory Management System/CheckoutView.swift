@@ -13,16 +13,28 @@ struct CheckoutView: View {
     @Environment(\.presentationMode) private var presentationMode
     
     @State private var isLoading: Bool = false
-    @State private var showConfirmation: Bool = false
-    @State private var showFailure: Bool = false
-    @State private var lastScannedItemName: String? = nil
-    @State private var refreshID: UUID = UUID()  // Refresh trigger
-    @State private var scannedItems: [String] = [] // Store scanned items locally
     @State private var isLoggedIn: Bool = false
     @State private var isSyncing = false
     @State private var items: [InventoryItem] = []
-    @State private var users: [UserItem] = []
+    @State private var lastScannedItemName: String? = nil
     @State private var loggedUser: String? = nil
+    @State private var pin: [String] = Array(repeating: "", count: 4)
+    @State private var refreshID: UUID = UUID()  // Refresh trigger
+    @State private var scannedItems: [String] = [] // Store scanned items locally
+    @State private var scannedUserID: String = ""
+    @State private var showConfirmation: Bool = false
+    @State private var showError: Bool = false
+    @State private var showFailure: Bool = false
+    @State private var showPinEntry: Bool = false
+    @State private var showUserRegistration: Bool = false // To track if user registration is needed
+    @State private var userName: String? = nil
+    @State private var userPinEntry: String = ""
+    @State private var users: [UserItem] = []
+    @State private var salt: String = ""
+    @State private var userSalt: String = "" // To hold the generated salt
+    @State private var userInput: String = ""
+    @State private var showPrompt: Bool = false
+
 
     var body: some View {
         if (isLoggedIn)
@@ -91,22 +103,36 @@ struct CheckoutView: View {
                 
                 // Success confirmation
                 if showConfirmation, let itemName = lastScannedItemName {
-                    VStack {
-                        Text("Item Added Successfully!")
-                            .font(.title2)
+                    VStack(spacing: 10) {
+                        Text("✅ Item Added Successfully!")
+                            .font(.headline) // Smaller size
                             .fontWeight(.bold)
                             .foregroundColor(.green)
+
+                        Text("You have successfully added:")
+                            .font(.subheadline)
+
                         Text(itemName)
-                            .font(.headline)
-                            .padding(.top, 10)
+                            .font(.footnote) // Smaller font for long item names
+                            .fontWeight(.semibold)
+                            .foregroundColor(.blue)
+                            .multilineTextAlignment(.center)
+                            .lineLimit(nil) // Allow full item name display
+                            .frame(maxWidth: 300) // Limit width to avoid overflow
+
+                        Text("You can continue scanning more items or proceed to checkout.")
+                            .font(.caption)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 10)
                     }
                     .padding()
-                    .background(Color.white.opacity(0.8))
-                    .cornerRadius(10)
-                    .frame(width: 300, height: 150)
-                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.green, lineWidth: 2))
+                    .background(Color.white.opacity(0.9))
+                    .cornerRadius(12)
+                    .frame(width: 350, height: 180) // Adjusted for better readability
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.green, lineWidth: 2))
                     .transition(.scale)
                 }
+
                 
                 // Failure message
                 if showFailure {
@@ -157,39 +183,113 @@ struct CheckoutView: View {
                     CodeScannerView(codeTypes: [.code128]) { response in
                         switch response {
                             case .success(let result):
-                                let scannedUserID = result.string
+                                scannedUserID = result.string
                                 print("Scanning user ID: \(scannedUserID)")
+
                                 // Check if user exists and fetch name
                                 checkIfUserExists(userID: scannedUserID) { exists, name in
-                                if exists, let userName = name
-                                {
-                                    
-                                    print("User already exists: \(scannedUserID) - Name: \(userName)")
-                                    DispatchQueue.main.async
-                                    {
-                                        self.isLoggedIn = true
-                                        self.loggedUser = userName
+                                    DispatchQueue.main.async {
+                                        if exists, let userName = name {
+                                            print("User already exists: \(scannedUserID) - Name: \(userName)")
+                                            self.userName = userName
+                                            self.showPinEntry = true
+                                            self.userPinEntry = ""  // Reset PIN on new scan
+                                            self.showError = false
+                                        } else {
+                                            print("New user detected. Prompting for details...")
+                                            self.showUserRegistration = true
+                                        }
                                     }
                                 }
-                                else
-                                {
-                                    print("Adding new user: \(scannedUserID)")
-                                    addUser(result: scannedUserID, userID: scannedUserID, name: "Tester2", userPinHash: "userPinHash")
-                                }
-                            }
+                            
                             case .failure(let error):
                                 print("Scanner error: \(error.localizedDescription)")
                                 triggerFailure()
                         }
                     }
-                    .id(refreshID) // Force refresh when ID changes
-                    // User Picker
+                    .id(scannedUserID) // Refresh scanner when a new user is scanned
+                    
+                    if showPinEntry, let userName = userName
+                    {
+                        Text("Welcome, \(userName)")
+                            .font(.headline)
+
+                        Text("Enter PIN")
+                            .font(.headline)
+
+                        PinEntryView(pin: $userPinEntry) { enteredPin in
+                            print("Entered PIN: \(enteredPin)")
+                            userPinEntry = enteredPin
+                            validatePin()
+                            
+                        }
+
+                        if showError {
+                            Text("Incorrect PIN, try again.")
+                                .foregroundColor(.red)
+                                .padding()
+                        }
+
+                    }
+                    if showUserRegistration
+                    {
+                        let name = ""
+                        let hashedPin = ""
+                        
+                        Text("Welcome, \(scannedUserID)")
+                            .font(.headline)
+                        
+                        Text("Enter Your Name:")
+                            .font(.headline)
+                        
+                        TextField("Name", text: $userInput)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .padding()
+                        
+                        if userInput != ""
+                        {
+                            PinEntryView(pin: $userPinEntry)
+                            {
+                                enteredPin in
+                                print("Entered Name: \(userInput)")
+                                print("Entered PIN: \(enteredPin)")
+                                userPinEntry = enteredPin
+                                completeRegistration()
+                            }
+                        }
+                        
+                    }
                 }
+                .padding()
             }
         }
     }
     
-        
+    private func validatePin()
+    {
+        if userPinEntry == "1234" {
+            DispatchQueue.main.async
+            {
+                self.isLoggedIn = true
+                self.loggedUser = userName
+            }
+        }
+        else
+        {
+            self.showError = true
+            self.userPinEntry = "" // Reset the PIN entry
+        }
+    }
+    
+    private func completeRegistration()
+    {
+        let salt = generateSalt()
+        let hashedPin = hashWithSalt(userPinEntry, salt: salt)
+        addUser(result: scannedUserID, userID: scannedUserID, name: userInput, userPinHash: hashedPin, salt: salt)
+        showUserRegistration = false
+        self.isLoggedIn = true
+        self.loggedUser = userInput
+    }
     
     func addItem(result: String) {
         isLoading = true
@@ -279,13 +379,15 @@ struct CheckoutView: View {
                 let data = doc.data()
                 guard let userID = data["userID"] as? String,
                       let name = data["name"] as? String,
-                let userPinHash = data["userPinHash"] as? String else { return nil }
+                let userPinHash = data["userPinHash"] as? String,
+                let salt = data["salt"] as? String else { return nil }
                 
                 return UserItem(
                     id: doc.documentID,
                     userID: userID,
                     name: name,
-                    userPinHash: userPinHash
+                    userPinHash: userPinHash,
+                    salt: salt
                 )
             }
         }
@@ -351,9 +453,9 @@ struct CheckoutView: View {
             }
     }
     
-    func addUser(result: String, userID: String, name: String, userPinHash: String) {
+    func addUser(result: String, userID: String, name: String, userPinHash: String, salt: Data) {
         // Add user to Firestore
-        FirestoreService.shared.addUser(itemID: result, userID: userID, name: name, userPinHash: userPinHash) { success in
+        FirestoreService.shared.addUser(itemID: result, userID: userID, name: name, userPinHash: userPinHash, salt: salt) { success in
             if success {
                 print("Successfully added user to Firestore")
             } else {
@@ -367,7 +469,7 @@ struct CheckoutView: View {
         }
     }
 
-    func sha256WithSalt(_ input: String, salt: Data) -> String {
+    func hashWithSalt(_ input: String, salt: Data) -> String {
         let inputData = Data(input.utf8)
         let saltedData = salt + inputData  // Append salt to input
         let hashed = SHA256.hash(data: saltedData)
@@ -380,5 +482,61 @@ struct CheckoutView: View {
         _ = salt.withUnsafeMutableBytes { SecRandomCopyBytes(kSecRandomDefault, length, $0.baseAddress!) }
         return salt
     }
+    
+    struct PinEntryView: View {
+        @Binding var pin: String
+        var onComplete: ((String) -> Void)?
 
+        let numbers = [
+            ["1", "2", "3"],
+            ["4", "5", "6"],
+            ["7", "8", "9"],
+            ["", "0", "⌫"]
+        ]
+
+        var body: some View {
+            VStack {
+                HStack(spacing: 10) {
+                    ForEach(0..<4, id: \.self) { index in
+                        Circle()
+                            .frame(width: 20, height: 20)
+                            .foregroundColor(index < pin.count ? .black : .gray)
+                    }
+                }
+                .padding()
+
+                ForEach(numbers, id: \.self) { row in
+                    HStack {
+                        ForEach(row, id: \.self) { number in
+                            Button(action: {
+                                handleInput(number)
+                            }) {
+                                Text(number)
+                                    .font(.largeTitle)
+                                    .frame(width: 80, height: 80)
+                                    .background(Color.gray.opacity(0.2))
+                                    .clipShape(Circle())
+                            }
+                            .disabled(number.isEmpty)
+                        }
+                    }
+                }
+            }
+        }
+
+        private func handleInput(_ value: String) {
+            if value == "⌫" {
+                if !pin.isEmpty {
+                    pin.removeLast()
+                }
+            } else if pin.count < 4 {
+                pin.append(value)
+                if pin.count == 4 {
+                    onComplete?(pin)
+                }
+            }
+        }
+    }
+
+    
 }
