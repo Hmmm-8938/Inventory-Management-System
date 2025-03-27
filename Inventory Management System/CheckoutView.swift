@@ -8,6 +8,8 @@
 import SwiftUI
 import CodeScanner
 import CryptoKit
+import FirebaseFirestore
+
 
 struct CheckoutView: View {
     @Environment(\.presentationMode) private var presentationMode
@@ -31,9 +33,11 @@ struct CheckoutView: View {
     @State private var userPinEntry: String = ""
     @State private var users: [UserItem] = []
     @State private var salt: String = ""
-    @State private var userSalt: String = "" // To hold the generated salt
+    @State private var userSalt: Data = Data() // To hold the generated salt
     @State private var userInput: String = ""
     @State private var showPrompt: Bool = false
+    @State private var globalUserPinHash: String = ""
+    @State private var globalUserName: String = ""
 
 
     var body: some View {
@@ -73,6 +77,7 @@ struct CheckoutView: View {
                                 if exists, let itemName = name
                                 {
                                     print("Item already exists: \(scannedItemID) - Name: \(itemName)")
+                                    checkOutItem(itemID: scannedItemID, name: itemName, userID: scannedUserID, usersName: globalUserName)
                                 }
                                 else
                                 {
@@ -219,9 +224,9 @@ struct CheckoutView: View {
 
                         PinEntryView(pin: $userPinEntry) { enteredPin in
                             print("Entered PIN: \(enteredPin)")
-                            userPinEntry = enteredPin
+//                            userPinEntry = enteredPin
+                            userPinEntry = hashWithSalt(enteredPin, salt: userSalt)
                             validatePin()
-                            
                         }
 
                         if showError {
@@ -267,7 +272,9 @@ struct CheckoutView: View {
     
     private func validatePin()
     {
-        if userPinEntry == "1234" {
+        print (userPinEntry)
+        print (globalUserPinHash)
+        if userPinEntry == globalUserPinHash {
             DispatchQueue.main.async
             {
                 self.isLoggedIn = true
@@ -290,6 +297,27 @@ struct CheckoutView: View {
         self.isLoggedIn = true
         self.loggedUser = userInput
     }
+    
+    func checkOutItem(itemID: String, name: String, userID: String, usersName: String) {
+        let checkOutTime = Timestamp(date: Date()) // Firestore-friendly timestamp
+        
+        let checkoutData: [String: Any] = [
+            "itemID": itemID,
+            "name": name,
+            "checkOutTime": checkOutTime,
+            "userID": userID,
+            "usersName": usersName
+        ]
+        
+        Firestore.firestore().collection("CheckedOutItems").addDocument(data: checkoutData) { error in
+            if let error = error {
+                print("Error checking out item: \(error.localizedDescription)")
+            } else {
+                print("Successfully checked out item \(name) with ID \(itemID) to \(usersName) with UserID of \(userID)")
+            }
+        }
+    }
+
     
     func addItem(result: String) {
         isLoading = true
@@ -323,6 +351,8 @@ struct CheckoutView: View {
             }
         }
     }
+    
+    
     
     func fetchTitlesFromAPI(result: String, completion: @escaping ([String]?) -> Void) {
         let apiURL = "https://sound-scarcely-mite.ngrok-free.app/scrape/\(result)"
@@ -406,6 +436,11 @@ struct CheckoutView: View {
                 
                 if let document = snapshot?.documents.first {
                     let name = document.data()["name"] as? String ?? "Unknown"
+                    globalUserName = name
+                    let salt = document.data()["salt"] as? Data
+                    let userPinHash = document.data()["userPinHash"] as? String
+                    globalUserPinHash = userPinHash ?? ""
+                    userSalt = salt!
                     print("User found: \(name)")
                     completion(true, name) // User exists
                 } else {
