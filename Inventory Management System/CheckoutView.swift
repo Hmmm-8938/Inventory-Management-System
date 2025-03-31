@@ -38,6 +38,7 @@ struct CheckoutView: View {
     @State private var showPrompt: Bool = false
     @State private var globalUserPinHash: String = ""
     @State private var globalUserName: String = ""
+    @State private var newItemName: String = ""
 
 
     var body: some View {
@@ -72,20 +73,24 @@ struct CheckoutView: View {
                         case .success(let result):
                             let scannedItemID = result.string
                             print("Scanning item QR Code: \(scannedItemID)")
+
                             // Check if item exists and fetch name
                             checkIfItemExists(itemID: scannedItemID) { exists, name in
-                                if exists, let itemName = name
-                                {
+                                if exists, let itemName = name {
                                     print("Item already exists: \(scannedItemID) - Name: \(itemName)")
                                     checkOutItem(itemID: scannedItemID, name: itemName, userID: scannedUserID, usersName: globalUserName)
-                                }
-                                else
-                                {
+                                } else {
                                     print("Adding new item: \(scannedItemID)")
-                                    // Handle adding new item if necessary
-                                    addItem(result: scannedItemID) // Add the item if it doesn't exist
+                                    addItem(result: scannedItemID) { newItemName in
+                                        if let newItemName = newItemName {
+                                            checkOutItem(itemID: scannedItemID, name: newItemName, userID: scannedUserID, usersName: globalUserName)
+                                        } else {
+                                            print("Failed to add item, check out not performed.")
+                                        }
+                                    }
                                 }
                             }
+
                         case .failure(let error):
                             print("Scanner error: \(error.localizedDescription)")
                             triggerFailure()
@@ -296,6 +301,7 @@ struct CheckoutView: View {
         showUserRegistration = false
         self.isLoggedIn = true
         self.loggedUser = userInput
+        globalUserName = userInput
     }
     
     func checkOutItem(itemID: String, name: String, userID: String, usersName: String) {
@@ -319,28 +325,32 @@ struct CheckoutView: View {
     }
 
     
-    func addItem(result: String) {
+    func addItem(result: String, completion: @escaping (String?) -> Void) {
         isLoading = true
 
         fetchTitlesFromAPI(result: result) { titles in
             DispatchQueue.main.async {
                 self.isLoading = false
-                
-                guard let titles = titles else {
+
+                guard let titles = titles, let itemName = titles.first else {
                     self.triggerFailure()
+                    completion(nil)
                     return
                 }
-                
+
                 self.scannedItems.append(contentsOf: titles)
-                self.lastScannedItemName = titles.first
+                self.lastScannedItemName = itemName
                 self.showConfirmation = true
-                
-                // Add item to Firestore-
-                FirestoreService.shared.addInventoryItem(itemID: result, name: titles.first ?? "Unknown") { success in
+                self.newItemName = itemName  // Store the new item name
+
+                // Add item to Firestore
+                FirestoreService.shared.addInventoryItem(itemID: result, name: itemName) { success in
                     if success {
                         print("Successfully added to Firestore")
+                        completion(itemName) // Pass item name to completion handler
                     } else {
                         print("Failed to add to Firestore")
+                        completion(nil)
                     }
                 }
 
@@ -351,6 +361,7 @@ struct CheckoutView: View {
             }
         }
     }
+
     
     
     
