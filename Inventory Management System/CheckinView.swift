@@ -177,8 +177,8 @@ struct CheckinView: View {
                     }
                     if showUserRegistration
                     {
-                        let name = ""
-                        let hashedPin = ""
+//                        let name = ""
+//                        let hashedPin = ""
                         
                         Text("Welcome, \(scannedUserID)")
                             .font(.headline)
