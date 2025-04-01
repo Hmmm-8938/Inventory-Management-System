@@ -67,7 +67,7 @@ struct ContentView: View {
                        )
                        
                        ActionButton(
-                           title: "Cannot find an item? View presently checked out items!",
+                           title: "View presently checked out items",
                            icon: "list.clipboard.fill",
                            destination: CheckedOutItemsView(),
                            gradient: Gradient(colors: [Color(hex: "D40F7D"), Color(hex: "D40F7D")])

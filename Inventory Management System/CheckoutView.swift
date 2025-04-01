@@ -10,7 +10,6 @@ import CodeScanner
 import CryptoKit
 import FirebaseFirestore
 
-
 struct CheckoutView: View {
     @Environment(\.presentationMode) private var presentationMode
     
@@ -39,35 +38,20 @@ struct CheckoutView: View {
     @State private var globalUserPinHash: String = ""
     @State private var globalUserName: String = ""
     @State private var newItemName: String = ""
-
+    @State private var headerOffsetY: CGFloat = -100 // For header animation
 
     var body: some View {
-        if (isLoggedIn)
-        {
-            ZStack
-            {
-                VStack
-                {
-                    VStack{}
-                        .navigationBarBackButtonHidden(true)
-                        .toolbar
-                        {
-                            ToolbarItem(placement: .navigationBarLeading)
-                            {
-                                HStack
-                                {
-                                    Button(action: { presentationMode.wrappedValue.dismiss() })
-                                    {
-                                        Image(systemName: "house")
-                                        Text("Home")
-                                    }
-                                    Spacer()
-                                    Text("Welcome \(loggedUser ?? "user")! Scan Biofact QR Code!")
-                                        .fontWeight(.thin)
-                                }
-                            }
-                        }
-                    // Code Scanner
+        if (isLoggedIn) {
+            ZStack {
+                VStack(spacing: 0) {
+                    AnimatedHeaderView(
+                        title: "Check Out Items",
+                        subtitle: "Welcome \(loggedUser ?? "user")! Scan Biofact QR Code!",
+                        systemImage: "arrow.right.circle.fill",
+                        offsetY: $headerOffsetY,
+                        onHomeButtonTapped: { presentationMode.wrappedValue.dismiss() }
+                    )
+                    
                     CodeScannerView(codeTypes: [.qr]) { response in
                         switch response {
                         case .success(let result):
@@ -96,8 +80,12 @@ struct CheckoutView: View {
                             triggerFailure()
                         }
                     }
-                    .id(refreshID) // Force refresh when ID changes
-
+                    .id(refreshID)
+                }
+                .onAppear {
+                    withAnimation(.easeOut(duration: 0.6)) {
+                        headerOffsetY = 0
+                    }
                 }
                 
                 // Loading indicator
@@ -163,33 +151,18 @@ struct CheckoutView: View {
                     .transition(.scale)
                 }
             }
-        }
-        else
-        {
-            ZStack
-            {
-                VStack
-                {
-                    VStack{}
-                        .navigationBarBackButtonHidden(true)
-                        .toolbar
-                        {
-                            ToolbarItem(placement: .navigationBarLeading)
-                            {
-                                HStack
-                                {
-                                    Button(action: { presentationMode.wrappedValue.dismiss() })
-                                    {
-                                        Image(systemName: "house")
-                                        Text("Home")
-                                    }
-                                    Spacer()
-                                    Text("Please scan User ID!")
-                                        .fontWeight(.thin)
-                                }
-                            }
-                        }
-                    // Code Scanner
+            .navigationBarHidden(true)
+        } else {
+            ZStack {
+                VStack(spacing: 0) {
+                    AnimatedHeaderView(
+                        title: "User Authentication",
+                        subtitle: "Please scan your User ID to continue",
+                        systemImage: "person.badge.key.fill",
+                        offsetY: $headerOffsetY,
+                        onHomeButtonTapped: { presentationMode.wrappedValue.dismiss() }
+                    )
+                    
                     CodeScannerView(codeTypes: [.code128]) { response in
                         switch response {
                             case .success(let result):
@@ -217,10 +190,9 @@ struct CheckoutView: View {
                                 triggerFailure()
                         }
                     }
-                    .id(scannedUserID) // Refresh scanner when a new user is scanned
+                    .id(scannedUserID)
                     
-                    if showPinEntry, let userName = userName
-                    {
+                    if showPinEntry, let userName = userName {
                         Text("Welcome, \(userName)")
                             .font(.headline)
 
@@ -229,7 +201,6 @@ struct CheckoutView: View {
 
                         PinEntryView(pin: $userPinEntry) { enteredPin in
                             print("Entered PIN: \(enteredPin)")
-//                            userPinEntry = enteredPin
                             userPinEntry = hashWithSalt(enteredPin, salt: userSalt)
                             validatePin()
                         }
@@ -239,10 +210,9 @@ struct CheckoutView: View {
                                 .foregroundColor(.red)
                                 .padding()
                         }
-
                     }
-                    if showUserRegistration
-                    {
+                    
+                    if showUserRegistration {
                         let name = ""
                         let hashedPin = ""
                         
@@ -256,45 +226,41 @@ struct CheckoutView: View {
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .padding()
                         
-                        if userInput != ""
-                        {
-                            PinEntryView(pin: $userPinEntry)
-                            {
-                                enteredPin in
+                        if userInput != "" {
+                            PinEntryView(pin: $userPinEntry) { enteredPin in
                                 print("Entered Name: \(userInput)")
                                 print("Entered PIN: \(enteredPin)")
                                 userPinEntry = enteredPin
                                 completeRegistration()
                             }
                         }
-                        
                     }
                 }
-                .padding()
+                .onAppear {
+                    withAnimation(.easeOut(duration: 0.6)) {
+                        headerOffsetY = 0
+                    }
+                }
             }
+            .navigationBarHidden(true)
         }
     }
     
-    private func validatePin()
-    {
-        print (userPinEntry)
-        print (globalUserPinHash)
+    private func validatePin() {
+        print(userPinEntry)
+        print(globalUserPinHash)
         if userPinEntry == globalUserPinHash {
-            DispatchQueue.main.async
-            {
+            DispatchQueue.main.async {
                 self.isLoggedIn = true
                 self.loggedUser = userName
             }
-        }
-        else
-        {
+        } else {
             self.showError = true
             self.userPinEntry = "" // Reset the PIN entry
         }
     }
     
-    private func completeRegistration()
-    {
+    private func completeRegistration() {
         let salt = generateSalt()
         let hashedPin = hashWithSalt(userPinEntry, salt: salt)
         addUser(result: scannedUserID, userID: scannedUserID, name: userInput, userPinHash: hashedPin, salt: salt)
@@ -305,7 +271,7 @@ struct CheckoutView: View {
     }
     
     func checkOutItem(itemID: String, name: String, userID: String, usersName: String) {
-        let checkOutTime = Timestamp(date: Date()) // Firestore-friendly timestamp
+        let checkOutTime = Timestamp(date: Date())
         
         let checkoutData: [String: Any] = [
             "itemID": itemID,
@@ -324,7 +290,6 @@ struct CheckoutView: View {
         }
     }
 
-    
     func addItem(result: String, completion: @escaping (String?) -> Void) {
         isLoading = true
 
@@ -341,13 +306,12 @@ struct CheckoutView: View {
                 self.scannedItems.append(contentsOf: titles)
                 self.lastScannedItemName = itemName
                 self.showConfirmation = true
-                self.newItemName = itemName  // Store the new item name
+                self.newItemName = itemName
 
-                // Add item to Firestore
                 FirestoreService.shared.addInventoryItem(itemID: result, name: itemName) { success in
                     if success {
                         print("Successfully added to Firestore")
-                        completion(itemName) // Pass item name to completion handler
+                        completion(itemName)
                     } else {
                         print("Failed to add to Firestore")
                         completion(nil)
@@ -356,15 +320,12 @@ struct CheckoutView: View {
 
                 DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
                     self.showConfirmation = false
-                    refreshScanner()  // Refresh scanner after success
+                    refreshScanner()
                 }
             }
         }
     }
 
-    
-    
-    
     func fetchTitlesFromAPI(result: String, completion: @escaping ([String]?) -> Void) {
         let apiURL = "https://sound-scarcely-mite.ngrok-free.app/scrape/\(result)"
         guard let url = URL(string: apiURL) else {
@@ -393,12 +354,12 @@ struct CheckoutView: View {
         showFailure = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
             showFailure = false
-            refreshScanner() // Refresh scanner after failure
+            refreshScanner()
         }
     }
     
     func refreshScanner() {
-        refreshID = UUID()  // Reset refresh trigger for scanner
+        refreshID = UUID()
     }
     
     private func syncUsersData() {
@@ -415,13 +376,12 @@ struct CheckoutView: View {
                 return
             }
             
-            // Map Firestore documents to InventoryItem models
             users = documents.compactMap { doc -> UserItem? in
                 let data = doc.data()
                 guard let userID = data["userID"] as? String,
                       let name = data["name"] as? String,
-                let userPinHash = data["userPinHash"] as? String,
-                let salt = data["salt"] as? String else { return nil }
+                      let userPinHash = data["userPinHash"] as? String,
+                      let salt = data["salt"] as? String else { return nil }
                 
                 return UserItem(
                     id: doc.documentID,
@@ -453,10 +413,10 @@ struct CheckoutView: View {
                     globalUserPinHash = userPinHash ?? ""
                     userSalt = salt!
                     print("User found: \(name)")
-                    completion(true, name) // User exists
+                    completion(true, name)
                 } else {
                     print("User not found.")
-                    completion(false, nil) // User does not exist
+                    completion(false, nil)
                 }
             }
     }
@@ -476,31 +436,27 @@ struct CheckoutView: View {
                     let name = document.data()["name"] as? String ?? "Unknown"
                     print("Item found: \(name)")
                     
-                    // Refresh scanner after item is found in Firestore
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                        self.refreshScanner() // Refresh the scanner
+                        self.refreshScanner()
                     }
                     
-                    // Show confirmation message for fetched item
                     DispatchQueue.main.async {
                         self.lastScannedItemName = name
                         self.showConfirmation = true
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 3)
-                        {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
                             self.showConfirmation = false
                         }
                     }
                     
-                    completion(true, name) // Item exists
+                    completion(true, name)
                 } else {
                     print("Item not found.")
-                    completion(false, nil) // Item does not exist
+                    completion(false, nil)
                 }
             }
     }
     
     func addUser(result: String, userID: String, name: String, userPinHash: String, salt: Data) {
-        // Add user to Firestore
         FirestoreService.shared.addUser(itemID: result, userID: userID, name: name, userPinHash: userPinHash, salt: salt) { success in
             if success {
                 print("Successfully added user to Firestore")
@@ -509,7 +465,6 @@ struct CheckoutView: View {
             }
         }
         
-        // Refresh scanner after a short delay
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
             refreshScanner()
         }
@@ -517,12 +472,11 @@ struct CheckoutView: View {
 
     func hashWithSalt(_ input: String, salt: Data) -> String {
         let inputData = Data(input.utf8)
-        let saltedData = salt + inputData  // Append salt to input
+        let saltedData = salt + inputData
         let hashed = SHA256.hash(data: saltedData)
         return hashed.map { String(format: "%02x", $0) }.joined()
     }
 
-    // Generate a random 16-byte salt
     func generateSalt(length: Int = 16) -> Data {
         var salt = Data(count: length)
         _ = salt.withUnsafeMutableBytes { SecRandomCopyBytes(kSecRandomDefault, length, $0.baseAddress!) }
@@ -583,6 +537,4 @@ struct CheckoutView: View {
             }
         }
     }
-
-    
 }

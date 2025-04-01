@@ -14,86 +14,120 @@ struct ScannerView: View {
     @State private var lastScannedItemName: String? = nil
     @State private var refreshID: UUID = UUID()  // Refresh trigger
     @State private var scannedItems: [String] = [] // Store scanned items locally
+    @State private var headerOffsetY: CGFloat = -100 // For header animation
 
     var body: some View {
-        ZStack {
-            VStack {
-                Spacer()
-                    .navigationBarBackButtonHidden(true)
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarLeading) {
-                            HStack {
-                                Button(action: { presentationMode.wrappedValue.dismiss() }) {
-                                    Image(systemName: "house")
-                                    Text("Home")
-                                }
-                                Spacer()
-                                Text("Scan Code")
-                            }
-                        }
-                    }
+        ZStack(alignment: .top) {
+            // Camera view at the bottom layer
+            CodeScannerView(codeTypes: [.code128, .qr, .ean8, .code39, .code93, .ean13]) { response in
+                switch response {
+                case .success(let result):
+                    print("Scanned code: \(result.string)")
+                    addItem(result: result.string)
+                case .failure(let error):
+                    print("Scanner error: \(error.localizedDescription)")
+                    triggerFailure()
+                }
+            }
+            .id(refreshID)
+            .ignoresSafeArea()
+            
+            // Header overlay
+            VStack(spacing: 0) {
+                AnimatedHeaderView(
+                    title: "Scan Code",
+                    subtitle: "Please scan a QR or barcode to add an item",
+                    systemImage: "qrcode.viewfinder",
+                    offsetY: $headerOffsetY,
+                    onHomeButtonTapped: { presentationMode.wrappedValue.dismiss() }
+                )
                 
-                // Code Scanner
-                CodeScannerView(codeTypes: [.code128, .qr, .ean8, .code39, .code93, .ean13]) { response in
-                    switch response {
-                    case .success(let result):
-                        print("Scanned code: \(result.string)")
-                        addItem(result: result.string)
-                    case .failure(let error):
-                        print("Scanner error: \(error.localizedDescription)")
-                        triggerFailure()
+                // Add a scanning indicator line
+                Rectangle()
+                    .fill(Color.green.opacity(0.5))
+                    .frame(height: 2)
+                    .shadow(color: Color.green.opacity(0.5), radius: 4)
+                
+                Spacer()
+            }
+            .ignoresSafeArea(.all, edges: .top)
+            
+            // Status overlays
+            Group {
+                // Loading indicator
+                if isLoading {
+                    ProgressView("Fetching data...")
+                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        .font(.headline)
+                        .padding()
+                        .background(Color.black.opacity(0.7))
+                        .cornerRadius(10)
+                        .shadow(radius: 5)
+                }
+                
+                // Success confirmation
+                if showConfirmation, let itemName = lastScannedItemName {
+                    VStack(spacing: 8) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.largeTitle)
+                            .foregroundColor(.green)
+                        
+                        Text("Item Added")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                        
+                        Text(itemName)
+                            .font(.subheadline)
+                            .foregroundColor(.white.opacity(0.9))
+                            .lineLimit(2)
+                            .multilineTextAlignment(.center)
                     }
-                }
-                .id(refreshID) // Force refresh when ID changes
-            }
-            
-            // Loading indicator
-            if isLoading {
-                ProgressView("Fetching data...")
-                    .progressViewStyle(CircularProgressViewStyle(tint: .blue))
-                    .font(.title)
                     .padding()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color.white.opacity(0.7))
-                    .cornerRadius(10)
-            }
-            
-            // Success confirmation
-            if showConfirmation, let itemName = lastScannedItemName {
-                VStack {
-                    Text("Item Added Successfully!")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundColor(.green)
-                    Text(itemName)
-                        .font(.headline)
-                        .padding(.top, 10)
+                    .frame(width: 250)
+                    .background(
+                        RoundedRectangle(cornerRadius: 15)
+                            .fill(Color.black.opacity(0.8))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 15)
+                                    .stroke(Color.green, lineWidth: 2)
+                            )
+                    )
+                    .transition(.scale)
                 }
-                .padding()
-                .background(Color.white.opacity(0.8))
-                .cornerRadius(10)
-                .frame(width: 300, height: 150)
-                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.green, lineWidth: 2))
-                .transition(.scale)
-            }
-            
-            // Failure message
-            if showFailure {
-                VStack {
-                    Text("Failed to Fetch Item")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundColor(.red)
-                    Text("Please try again.")
-                        .font(.headline)
-                        .padding(.top, 10)
+                
+                // Failure message
+                if showFailure {
+                    VStack(spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.largeTitle)
+                            .foregroundColor(.red)
+                        
+                        Text("Scan Failed")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                        
+                        Text("Please try scanning again")
+                            .font(.subheadline)
+                            .foregroundColor(.white.opacity(0.9))
+                    }
+                    .padding()
+                    .frame(width: 250)
+                    .background(
+                        RoundedRectangle(cornerRadius: 15)
+                            .fill(Color.black.opacity(0.8))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 15)
+                                    .stroke(Color.red, lineWidth: 2)
+                            )
+                    )
+                    .transition(.scale)
                 }
-                .padding()
-                .background(Color.white.opacity(0.8))
-                .cornerRadius(10)
-                .frame(width: 300, height: 150)
-                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.red, lineWidth: 2))
-                .transition(.scale)
+            }
+        }
+        .navigationBarHidden(true)
+        .onAppear {
+            withAnimation(.easeOut(duration: 0.6)) {
+                headerOffsetY = 0
             }
         }
     }

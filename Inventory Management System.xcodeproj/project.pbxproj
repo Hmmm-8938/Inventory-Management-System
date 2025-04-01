@@ -486,7 +486,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Inventory Management System/Preview Content\"";
-				DEVELOPMENT_TEAM = 8SN9KC4U27;
+				DEVELOPMENT_TEAM = RXTSCCJF26;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Inventory Management System would like access to your camera to scan QR and Barcodes essential to the usage of the app.";
@@ -517,7 +517,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Inventory Management System/Preview Content\"";
-				DEVELOPMENT_TEAM = 8SN9KC4U27;
+				DEVELOPMENT_TEAM = RXTSCCJF26;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Inventory Management System would like access to your camera to scan QR and Barcodes essential to the usage of the app.";
