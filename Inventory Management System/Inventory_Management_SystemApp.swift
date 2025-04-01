@@ -20,9 +20,19 @@ struct Inventory_Management_SystemApp: App {
 }
 
 // InventoryItem Model (No Local Storage)
-struct InventoryItem: Identifiable {
+struct InventoryItem: Identifiable
+{
     var id: String
     var name: String
+}
+
+struct CheckinItem: Identifiable
+{
+    var id: String
+    var checkOutTime: Date
+    var name: String
+    var userID: String
+    var usersName: String
 }
 
 struct CheckoutItem: Identifiable {
