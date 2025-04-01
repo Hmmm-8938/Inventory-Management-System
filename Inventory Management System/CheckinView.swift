@@ -266,48 +266,7 @@ struct CheckinView: View {
                 print("Added CheckinItem: \(checkinItem)")  // Debugging
                 return checkinItem
             }
-
-
-//            items = documents.compactMap { doc -> CheckinItem? in
-//                let data = doc.data()
-//                guard let checkOutTime = data["checkOutTime"] as? Date,
-//                      let itemID = data["itemID"] as? String,
-//                      let name = data["name"] as? String,
-//                      let userID = data["userID"] as? String,
-//                      let usersName = data["usersName"] as? String else {
-//                    return nil
-//                }
-//
-//                let checkinItem = CheckinItem(
-//                    id: itemID,
-//                    checkOutTime: checkOutTime,
-//                    name: name,
-//                    userID: userID,
-//                    usersName: usersName
-//                )
-//                print("Added CheckinItem: \(checkinItem)") // Debugging
-//                return checkinItem
-//            }
-
-
-//            // Map Firestore documents to InventoryItem models
-//            items = documents.compactMap { doc -> CheckinItem? in
-//                let data = doc.data()
-//                guard let checkOutTime = data["checkoutTime"] as? Date, // Fixed incorrect field name
-//                      let itemID = data["itemID"] as? String,
-//                      let name = data["name"] as? String,
-//                      let userID = data["userID"] as? String,
-//                      let usersName = data["usersName"] as? String else { return nil }
-//                
-//                return CheckinItem (
-//                    id: itemID,
-//                    checkOutTime: checkOutTime,
-//                    name: name,
-//                    userID: userID,
-//                    usersName: usersName
-//                ) // Ensure instantiation
-//            }
-
+            
         }
     }
     
