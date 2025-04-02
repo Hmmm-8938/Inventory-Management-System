@@ -86,3 +86,60 @@ struct AnimatedHeaderView: View {
         .zIndex(100) // Ensure this is always on top
     }
 }
+
+// PIN Entry View Component for shared use in check-in and check-out
+struct PinEntryView: View {
+    @Binding var pin: String
+    var onComplete: ((String) -> Void)?
+
+    let numbers = [
+        ["1", "2", "3"],
+        ["4", "5", "6"],
+        ["7", "8", "9"],
+        ["", "0", "⌫"]
+    ]
+
+    var body: some View {
+        VStack {
+            HStack(spacing: 10) {
+                ForEach(0..<4, id: \.self) { index in
+                    Circle()
+                        .frame(width: 20, height: 20)
+                        .foregroundColor(index < pin.count ? .black : .gray)
+                }
+            }
+            .padding()
+
+            ForEach(numbers, id: \.self) { row in
+                HStack {
+                    ForEach(row, id: \.self) { number in
+                        Button(action: {
+                            handleInput(number)
+                        }) {
+                            Text(number)
+                                .font(.largeTitle)
+                                .frame(width: 80, height: 80)
+                                .background(Color.blue.opacity(0.2))
+                                .foregroundColor(.black)
+                                .clipShape(Circle())
+                        }
+                        .disabled(number.isEmpty)
+                    }
+                }
+            }
+        }
+    }
+
+    private func handleInput(_ value: String) {
+        if value == "⌫" {
+            if !pin.isEmpty {
+                pin.removeLast()
+            }
+        } else if pin.count < 4 {
+            pin.append(value)
+            if pin.count == 4 {
+                onComplete?(pin)
+            }
+        }
+    }
+}

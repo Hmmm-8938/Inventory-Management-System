@@ -10,6 +10,7 @@ import CodeScanner
 import CryptoKit
 import FirebaseFirestore
 
+
 struct CheckoutView: View {
     @Environment(\.presentationMode) private var presentationMode
     
@@ -191,54 +192,107 @@ struct CheckoutView: View {
                         }
                     }
                     .id(scannedUserID)
-                    
-                    if showPinEntry, let userName = userName {
-                        Text("Welcome, \(userName)")
-                            .font(.headline)
-
-                        Text("Enter PIN")
-                            .font(.headline)
-
-                        PinEntryView(pin: $userPinEntry) { enteredPin in
-                            print("Entered PIN: \(enteredPin)")
-                            userPinEntry = hashWithSalt(enteredPin, salt: userSalt)
-                            validatePin()
-                        }
-
-                        if showError {
-                            Text("Incorrect PIN, try again.")
-                                .foregroundColor(.red)
-                                .padding()
-                        }
-                    }
-                    
-                    if showUserRegistration {
-                        let name = ""
-                        let hashedPin = ""
-                        
-                        Text("Welcome, \(scannedUserID)")
-                            .font(.headline)
-                        
-                        Text("Enter Your Name:")
-                            .font(.headline)
-                        
-                        TextField("Name", text: $userInput)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .padding()
-                        
-                        if userInput != "" {
-                            PinEntryView(pin: $userPinEntry) { enteredPin in
-                                print("Entered Name: \(userInput)")
-                                print("Entered PIN: \(enteredPin)")
-                                userPinEntry = enteredPin
-                                completeRegistration()
-                            }
-                        }
-                    }
                 }
                 .onAppear {
                     withAnimation(.easeOut(duration: 0.6)) {
                         headerOffsetY = 0
+                    }
+                }
+                
+                // Overlays are directly in the ZStack, outside the VStack
+                if showPinEntry || showUserRegistration {
+                    Color.black.opacity(0.4)
+                        .edgesIgnoringSafeArea(.all)
+                        .transition(.opacity)
+                    
+                    if showPinEntry, let userName = userName {
+                        VStack {
+                            Spacer(minLength: 120)
+                            
+                            VStack(spacing: 20) {
+                                Text("Welcome, \(userName)")
+                                    .font(.title3)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.black)
+
+                                Text("Enter PIN")
+                                    .font(.headline)
+                                    .foregroundColor(.black)
+
+                                // Using the shared PinEntryView component
+                                PinEntryView(pin: $userPinEntry) { enteredPin in
+                                    print("Entered PIN: \(enteredPin)")
+                                    userPinEntry = hashWithSalt(enteredPin, salt: userSalt)
+                                    validatePin()
+                                }
+
+                                if showError {
+                                    Text("Incorrect PIN, try again.")
+                                        .foregroundColor(.red)
+                                        .padding(.top, 8)
+                                }
+                            }
+                            .padding(24)
+                            .background(
+                                RoundedRectangle(cornerRadius: 20)
+                                    .fill(Color.white.opacity(0.95))
+                                    .shadow(radius: 10)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 20)
+                                            .stroke(Color.blue.opacity(0.5), lineWidth: 2)
+                                    )
+                            )
+                            .padding()
+                            
+                            Spacer()
+                        }
+                    }
+                    
+                    if showUserRegistration {
+                        VStack {
+                            Spacer(minLength: 120)
+                            
+                            VStack(spacing: 20) {
+                                Text("Welcome, \(scannedUserID)")
+                                    .font(.title3)
+                                    .fontWeight(.bold)
+                                
+                                Text("Enter Your Name:")
+                                    .font(.headline)
+                                
+                                TextField("Name", text: $userInput)
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .padding(.horizontal, 20)
+                                    .padding(.vertical, 8)
+                                
+                                if userInput != "" {
+                                    Text("Create a PIN:")
+                                        .font(.headline)
+                                        .padding(.top, 8)
+                                        
+                                    // Using the shared PinEntryView component
+                                    PinEntryView(pin: $userPinEntry) { enteredPin in
+                                        print("Entered Name: \(userInput)")
+                                        print("Entered PIN: \(enteredPin)")
+                                        userPinEntry = enteredPin
+                                        completeRegistration()
+                                    }
+                                }
+                            }
+                            .padding(24)
+                            .background(
+                                RoundedRectangle(cornerRadius: 20)
+                                    .fill(Color.white.opacity(0.95))
+                                    .shadow(radius: 10)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 20)
+                                            .stroke(Color.blue.opacity(0.5), lineWidth: 2)
+                                    )
+                            )
+                            .padding()
+                            
+                            Spacer()
+                        }
                     }
                 }
             }
@@ -481,60 +535,5 @@ struct CheckoutView: View {
         var salt = Data(count: length)
         _ = salt.withUnsafeMutableBytes { SecRandomCopyBytes(kSecRandomDefault, length, $0.baseAddress!) }
         return salt
-    }
-    
-    struct PinEntryView: View {
-        @Binding var pin: String
-        var onComplete: ((String) -> Void)?
-
-        let numbers = [
-            ["1", "2", "3"],
-            ["4", "5", "6"],
-            ["7", "8", "9"],
-            ["", "0", "⌫"]
-        ]
-
-        var body: some View {
-            VStack {
-                HStack(spacing: 10) {
-                    ForEach(0..<4, id: \.self) { index in
-                        Circle()
-                            .frame(width: 20, height: 20)
-                            .foregroundColor(index < pin.count ? .black : .gray)
-                    }
-                }
-                .padding()
-
-                ForEach(numbers, id: \.self) { row in
-                    HStack {
-                        ForEach(row, id: \.self) { number in
-                            Button(action: {
-                                handleInput(number)
-                            }) {
-                                Text(number)
-                                    .font(.largeTitle)
-                                    .frame(width: 80, height: 80)
-                                    .background(Color.gray.opacity(0.2))
-                                    .clipShape(Circle())
-                            }
-                            .disabled(number.isEmpty)
-                        }
-                    }
-                }
-            }
-        }
-
-        private func handleInput(_ value: String) {
-            if value == "⌫" {
-                if !pin.isEmpty {
-                    pin.removeLast()
-                }
-            } else if pin.count < 4 {
-                pin.append(value)
-                if pin.count == 4 {
-                    onComplete?(pin)
-                }
-            }
-        }
     }
 }

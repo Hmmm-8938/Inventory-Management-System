@@ -44,7 +44,6 @@ struct CheckinView: View {
 
     var body: some View {
         if (isLoggedIn) {
-            // IMPORTANT: Match the ZStack structure EXACTLY to CheckoutView
             ZStack {
                 VStack(spacing: 0) {
                     AnimatedHeaderView(
@@ -55,7 +54,6 @@ struct CheckinView: View {
                         onHomeButtonTapped: { presentationMode.wrappedValue.dismiss() }
                     )
                     
-                    // Content area - this stays inside the VStack but not in a nested VStack
                     Text("Checked Out Items")
                         .font(.largeTitle)
                         .fontWeight(.bold)
@@ -69,8 +67,11 @@ struct CheckinView: View {
                                 .padding()
                         } else {
                             ForEach(items, id: \.id) { item in
-                                Text(item.name)
-                                    .padding(.vertical, 8)
+                                if (item.userID == scannedUserID)
+                                {
+                                    Text(item.name)
+                                        .padding(.vertical, 8)
+                                }
                             }
                         }
                     }
@@ -84,7 +85,6 @@ struct CheckinView: View {
                     }
                 }
                 
-                // Moved outside the VStack to match CheckoutView structure
                 if isSyncing {
                     ProgressView("Syncing...")
                         .padding()
@@ -105,7 +105,6 @@ struct CheckinView: View {
                         onHomeButtonTapped: { presentationMode.wrappedValue.dismiss() }
                     )
                     
-                    // Important: The scanner is directly in this VStack, not wrapped in another VStack
                     CodeScannerView(codeTypes: [.code128]) { response in
                         switch response {
                             case .success(let result):
@@ -154,10 +153,13 @@ struct CheckinView: View {
                                 Text("Welcome, \(userName)")
                                     .font(.title3)
                                     .fontWeight(.bold)
+                                    .foregroundColor(.black)
 
                                 Text("Enter PIN")
                                     .font(.headline)
+                                    .foregroundColor(.black)
 
+                                // Using the shared PinEntryView component
                                 PinEntryView(pin: $userPinEntry) { enteredPin in
                                     print("Entered PIN: \(enteredPin)")
                                     userPinEntry = hashWithSalt(enteredPin, salt: userSalt)
@@ -208,6 +210,7 @@ struct CheckinView: View {
                                         .font(.headline)
                                         .padding(.top, 8)
                                         
+                                    // Using the shared PinEntryView component
                                     PinEntryView(pin: $userPinEntry) { enteredPin in
                                         print("Entered Name: \(userInput)")
                                         print("Entered PIN: \(enteredPin)")
@@ -237,8 +240,9 @@ struct CheckinView: View {
         }
     }
     
-    // The rest of the code remains unchanged
     private func syncInventoryData() {
+        // Rest of the code stays the same
+        // (Implementation unchanged)
         isSyncing = true
         FirestoreService.shared.getFirestoreDB().collection("CheckedOutItems").getDocuments { snapshot, error in
             isSyncing = false
@@ -253,14 +257,13 @@ struct CheckinView: View {
             }
 
             print("Fetched \(documents.count) items from Firestore.")
-            print("Fetched documents: \(documents)")  // Debugging
+            print("Fetched documents: \(documents)")
             
             items = documents.compactMap { doc -> CheckinItem? in
                 let data = doc.data()
-                print("Document ID: \(doc.documentID)")  // Print the document ID for each item
-                print("Document data: \(data)")  // Print the data of each document
+                print("Document ID: \(doc.documentID)")
+                print("Document data: \(data)")
 
-                // Convert checkOutTime from FIRTimestamp to Date
                 guard let checkOutTimeTimestamp = data["checkOutTime"] as? Timestamp else {
                     print("Missing or invalid checkOutTime in document \(doc.documentID)")
                     return nil
@@ -291,12 +294,13 @@ struct CheckinView: View {
                     userID: userID,
                     usersName: usersName
                 )
-                print("Added CheckinItem: \(checkinItem)")  // Debugging
+                print("Added CheckinItem: \(checkinItem)")
                 return checkinItem
             }
         }
     }
     
+    // Rest of the functions remain unchanged
     private func checkIfUserExists(userID: String, completion: @escaping (Bool, String?) -> Void) {
         print("Checking if user exists in Firestore: \(userID)")
         FirestoreService.shared.getFirestoreDB().collection("users")
@@ -316,10 +320,10 @@ struct CheckinView: View {
                     globalUserPinHash = userPinHash ?? ""
                     userSalt = salt!
                     print("User found: \(name)")
-                    completion(true, name) // User exists
+                    completion(true, name)
                 } else {
                     print("User not found.")
-                    completion(false, nil) // User does not exist
+                    completion(false, nil)
                 }
             }
     }
@@ -335,7 +339,7 @@ struct CheckinView: View {
         }
         else {
             self.showError = true
-            self.userPinEntry = "" // Reset the PIN entry
+            self.userPinEntry = ""
         }
     }
     
@@ -353,12 +357,12 @@ struct CheckinView: View {
         showFailure = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
             showFailure = false
-            refreshScanner() // Refresh scanner after failure
+            refreshScanner()
         }
     }
     
     func refreshScanner() {
-        refreshID = UUID()  // Reset refresh trigger for scanner
+        refreshID = UUID()
     }
     
     private func syncUsersData() {
@@ -375,13 +379,12 @@ struct CheckinView: View {
                 return
             }
             
-            // Map Firestore documents to InventoryItem models
             users = documents.compactMap { doc -> UserItem? in
                 let data = doc.data()
                 guard let userID = data["userID"] as? String,
                       let name = data["name"] as? String,
-                let userPinHash = data["userPinHash"] as? String,
-                let salt = data["salt"] as? String else { return nil }
+                      let userPinHash = data["userPinHash"] as? String,
+                      let salt = data["salt"] as? String else { return nil }
                 
                 return UserItem(
                     id: doc.documentID,
@@ -395,7 +398,6 @@ struct CheckinView: View {
     }
     
     func addUser(result: String, userID: String, name: String, userPinHash: String, salt: Data) {
-        // Add user to Firestore
         FirestoreService.shared.addUser(itemID: result, userID: userID, name: name, userPinHash: userPinHash, salt: salt) { success in
             if success {
                 print("Successfully added user to Firestore")
@@ -404,7 +406,6 @@ struct CheckinView: View {
             }
         }
         
-        // Refresh scanner after a short delay
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
             refreshScanner()
         }
@@ -412,70 +413,14 @@ struct CheckinView: View {
 
     func hashWithSalt(_ input: String, salt: Data) -> String {
         let inputData = Data(input.utf8)
-        let saltedData = salt + inputData  // Append salt to input
+        let saltedData = salt + inputData
         let hashed = SHA256.hash(data: saltedData)
         return hashed.map { String(format: "%02x", $0) }.joined()
     }
 
-    // Generate a random 16-byte salt
     func generateSalt(length: Int = 16) -> Data {
         var salt = Data(count: length)
         _ = salt.withUnsafeMutableBytes { SecRandomCopyBytes(kSecRandomDefault, length, $0.baseAddress!) }
         return salt
-    }
-    
-    struct PinEntryView: View {
-        @Binding var pin: String
-        var onComplete: ((String) -> Void)?
-
-        let numbers = [
-            ["1", "2", "3"],
-            ["4", "5", "6"],
-            ["7", "8", "9"],
-            ["", "0", "⌫"]
-        ]
-
-        var body: some View {
-            VStack {
-                HStack(spacing: 10) {
-                    ForEach(0..<4, id: \.self) { index in
-                        Circle()
-                            .frame(width: 20, height: 20)
-                            .foregroundColor(index < pin.count ? .black : .gray)
-                    }
-                }
-                .padding()
-
-                ForEach(numbers, id: \.self) { row in
-                    HStack {
-                        ForEach(row, id: \.self) { number in
-                            Button(action: {
-                                handleInput(number)
-                            }) {
-                                Text(number)
-                                    .font(.largeTitle)
-                                    .frame(width: 80, height: 80)
-                                    .background(Color.gray.opacity(0.2))
-                                    .clipShape(Circle())
-                            }
-                            .disabled(number.isEmpty)
-                        }
-                    }
-                }
-            }
-        }
-
-        private func handleInput(_ value: String) {
-            if value == "⌫" {
-                if !pin.isEmpty {
-                    pin.removeLast()
-                }
-            } else if pin.count < 4 {
-                pin.append(value)
-                if pin.count == 4 {
-                    onComplete?(pin)
-                }
-            }
-        }
     }
 }
