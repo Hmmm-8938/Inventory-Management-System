@@ -163,7 +163,7 @@ struct CheckoutView: View {
                             .fontWeight(.bold)
                             .foregroundColor(.red)
 
-                        Text("This item is currently checked out by another user.")
+                        Text("This item is currently checked out:")
                             .font(.subheadline)
                             .foregroundColor(.black) // Changed to black
 
