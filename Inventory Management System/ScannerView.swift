@@ -17,22 +17,8 @@ struct ScannerView: View {
     @State private var headerOffsetY: CGFloat = -100 // For header animation
 
     var body: some View {
-        ZStack(alignment: .top) {
-            // Camera view at the bottom layer
-            CodeScannerView(codeTypes: [.code128, .qr, .ean8, .code39, .code93, .ean13]) { response in
-                switch response {
-                case .success(let result):
-                    print("Scanned code: \(result.string)")
-                    addItem(result: result.string)
-                case .failure(let error):
-                    print("Scanner error: \(error.localizedDescription)")
-                    triggerFailure()
-                }
-            }
-            .id(refreshID)
-            .ignoresSafeArea()
-            
-            // Header overlay
+        ZStack {
+            // Full screen structure with proper spacing
             VStack(spacing: 0) {
                 AnimatedHeaderView(
                     title: "Scan Code",
@@ -42,7 +28,25 @@ struct ScannerView: View {
                     onHomeButtonTapped: { presentationMode.wrappedValue.dismiss() }
                 )
                 
-                // Add a scanning indicator line
+                // Scanner view takes remaining space
+                CodeScannerView(codeTypes: [.code128, .qr, .ean8, .code39, .code93, .ean13]) { response in
+                    switch response {
+                    case .success(let result):
+                        print("Scanned code: \(result.string)")
+                        addItem(result: result.string)
+                    case .failure(let error):
+                        print("Scanner error: \(error.localizedDescription)")
+                        triggerFailure()
+                    }
+                }
+                .id(refreshID)
+            }
+            .edgesIgnoringSafeArea(.bottom) // Only ignore bottom safe area
+            
+            // Scanning indicator line overlay
+            VStack {
+                Spacer().frame(height: 100) // Position below header
+                
                 Rectangle()
                     .fill(Color.green.opacity(0.5))
                     .frame(height: 2)
@@ -50,7 +54,6 @@ struct ScannerView: View {
                 
                 Spacer()
             }
-            .ignoresSafeArea(.all, edges: .top)
             
             // Status overlays
             Group {
@@ -132,6 +135,7 @@ struct ScannerView: View {
         }
     }
     
+    // Rest of the methods remain unchanged
     func addItem(result: String) {
         isLoading = true
 

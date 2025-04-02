@@ -25,11 +25,11 @@ struct ContentView: View {
    var body: some View {
        NavigationStack {
            ZStack {
-               // Background gradient with the blue hex color - lighter at top, darker at bottom
+               
                LinearGradient(
-                   gradient: Gradient(colors: [Color(hex: "001058").opacity(0.4), Color(hex: "001058")]),
-                   startPoint: .top,
-                   endPoint: .bottom
+                   gradient: Gradient(colors: [Color(hex: "4949FF").opacity(0.6), Color(hex: "A3A3FF")]),
+                   startPoint: .bottom,
+                   endPoint: .top
                )
                .ignoresSafeArea()
                
@@ -38,7 +38,7 @@ struct ContentView: View {
                        Image("Wilder_Institute-Calgary_Zoo_Logo")
                            .resizable()
                            .scaledToFit()
-                           .frame(width: 300, height: 150)
+                           .frame(width: 350, height: 200)
                        
                        Text("E.R.C. Digital Signout")
                            .font(.title)
@@ -50,33 +50,35 @@ struct ContentView: View {
                    
                    Spacer()
                    
-                   // Buttons
-                   VStack(spacing: 50) {
+                   // Buttons with intro text
+                   VStack(spacing: 24) {
+                       
                        ActionButton(
                            title: "Check Out",
                            icon: "arrow.right.circle.fill",
                            destination: CheckoutView(),
-                           gradient: Gradient(colors: [Color(hex: "E87722"), Color(hex: "E87722")])
+                           gradient: Gradient(colors: [Color(hex: "E87722"), Color(hex: "FF9F45")])
                        )
                        
                        ActionButton(
                            title: "Check In",
                            icon: "arrow.left.circle.fill",
                            destination: CheckinView(),
-                           gradient: Gradient(colors: [Color(hex: "64A70B"), Color(hex: "64A70B")])
+                           gradient: Gradient(colors: [Color(hex: "64A70B"), Color(hex: "8FCC2F")])
                        )
                        
                        ActionButton(
-                           title: "View presently checked out items",
+                           title: "View All Items",
                            icon: "list.clipboard.fill",
                            destination: CheckedOutItemsView(),
-                           gradient: Gradient(colors: [Color(hex: "D40F7D"), Color(hex: "D40F7D")])
+                           gradient: Gradient(colors: [Color(hex: "D40F7D"), Color(hex: "F064A6")])
                        )
                    }
+                   .padding(.horizontal, 16)
                    
                    Spacer()
                    
-                   // Admin button at bottom - styled to match but more subtle
+                   // Admin button at bottom
                    HStack {
                        Button(action: {
                            showAdminLogin = true
@@ -107,7 +109,7 @@ struct ContentView: View {
                        
                        Spacer()
                    }
-                   .padding(.top, -20) // Adjust to position properly
+                   .padding(.top, -20)
                }
                .padding(.horizontal, 24)
                .padding(.bottom, 40)
@@ -231,44 +233,98 @@ struct ContentView: View {
        }
    }
 }
- 
-// Updated button design to look cooler
+
+// Cool lil' button animation
 struct ActionButton<Destination: View>: View {
-   let title: String
-   let icon: String
-   let destination: Destination
-   let gradient: Gradient
-   
-   var body: some View {
-       NavigationLink(destination:
-          destination
-            .navigationBarBackButtonHidden(true) // Hide the back button
-       ) {
-           HStack {
-               Image(systemName: icon)
-                   .font(.title2)
-               Text(title)
-                   .font(.title3)
-                   .fontWeight(.semibold)
-           }
-           .frame(maxWidth: .infinity)
-           .frame(height: 70)
-           .background(
-               LinearGradient(
-                   gradient: gradient,
-                   startPoint: .leading,
-                   endPoint: .trailing
-               )
-           )
-           .foregroundColor(.white)
-           .clipShape(RoundedRectangle(cornerRadius: 16))
-           .shadow(color: .black.opacity(0.15), radius: 10, x: 0, y: 5)
-           .overlay(
-               RoundedRectangle(cornerRadius: 16)
-                   .stroke(.white.opacity(0.3), lineWidth: 1)
-           )
-       }
-   }
+    let title: String
+    let icon: String
+    let destination: Destination
+    let gradient: Gradient
+    @State private var isPressed = false
+    @State private var animateIcon = false
+    
+    var body: some View {
+        NavigationLink(destination:
+            destination
+            .navigationBarBackButtonHidden(true)
+        ) {
+            HStack(spacing: 16) {
+                // Left icon with animation
+                Image(systemName: icon)
+                    .font(.system(size: 24, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(width: 50, height: 50)
+                    .background(
+                        Circle()
+                            .fill(LinearGradient(
+                                gradient: gradient,
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ))
+                            .shadow(color: Color(gradient.stops.first?.color ?? .clear).opacity(0.5), radius: 8, x: 0, y: 4)
+                    )
+                    .rotationEffect(Angle(degrees: animateIcon ? 10 : 0))
+                    .scaleEffect(animateIcon ? 1.1 : 1.0)
+                    .onAppear {
+                        withAnimation(Animation.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
+                            animateIcon = true
+                        }
+                    }
+                
+                // Text with subtitle
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.title3)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                    
+                }
+                
+                Spacer()
+                
+                // Right arrow icon
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(.white.opacity(0.7))
+                    .padding(.trailing, 4)
+            }
+            .padding(.vertical, 16)
+            .padding(.horizontal, 20)
+            .background(
+                ZStack {
+                    // Main background
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(
+                            LinearGradient(
+                                gradient: gradient,
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                    
+                    // Top highlight
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(
+                            LinearGradient(
+                                gradient: Gradient(colors: [.white.opacity(0.5), .clear]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: isPressed ? 0.5 : 1.5
+                        )
+                }
+            )
+            .cornerRadius(16)
+            .shadow(color: Color(gradient.stops.first?.color ?? .clear).opacity(0.4), radius: isPressed ? 5 : 12, x: 0, y: isPressed ? 2 : 6)
+            .scaleEffect(isPressed ? 0.98 : 1)
+            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isPressed)
+            .onLongPressGesture(minimumDuration: .infinity, maximumDistance: 50, pressing: { pressing in
+                self.isPressed = pressing
+            }, perform: {})
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+    
 }
 
 // WebView for Admin Panel
