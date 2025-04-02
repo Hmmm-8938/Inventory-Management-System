@@ -40,7 +40,8 @@ struct CheckoutView: View {
     @State private var globalUserName: String = ""
     @State private var newItemName: String = ""
     @State private var headerOffsetY: CGFloat = -100 // For header animation
-
+    @State private var showAlreadyCheckedOut: Bool = false
+    
     var body: some View {
         if (isLoggedIn) {
             ZStack {
@@ -110,6 +111,7 @@ struct CheckoutView: View {
 
                         Text("You have successfully added:")
                             .font(.subheadline)
+                            .foregroundColor(.black) // Changed to black
 
                         Text(itemName)
                             .font(.footnote) // Smaller font for long item names
@@ -121,6 +123,7 @@ struct CheckoutView: View {
 
                         Text("You can continue scanning more items or proceed to checkout.")
                             .font(.caption)
+                            .foregroundColor(.black) // Changed to black
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 10)
                     }
@@ -149,6 +152,40 @@ struct CheckoutView: View {
                     .cornerRadius(10)
                     .frame(width: 300, height: 150)
                     .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.red, lineWidth: 2))
+                    .transition(.scale)
+                }
+                
+                // Item already checked out message
+                if showAlreadyCheckedOut, let itemName = lastScannedItemName {
+                    VStack(spacing: 10) {
+                        Text("❌ Item Already Checked Out!")
+                            .font(.headline) // Smaller size
+                            .fontWeight(.bold)
+                            .foregroundColor(.red)
+
+                        Text("This item is currently checked out by another user.")
+                            .font(.subheadline)
+                            .foregroundColor(.black) // Changed to black
+
+                        Text(itemName)
+                            .font(.footnote) // Smaller font for long item names
+                            .fontWeight(.semibold)
+                            .foregroundColor(.blue)
+                            .multilineTextAlignment(.center)
+                            .lineLimit(nil) // Allow full item name display
+                            .frame(maxWidth: 300) // Limit width to avoid overflow
+
+                        Text("Item must be checked back in before checking out.")
+                            .font(.caption)
+                            .foregroundColor(.black) // Changed to black
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 10)
+                    }
+                    .padding()
+                    .background(Color.white.opacity(0.9))
+                    .cornerRadius(12)
+                    .frame(width: 350, height: 180) // Adjusted for better readability
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.red, lineWidth: 2))
                     .transition(.scale)
                 }
             }
@@ -325,23 +362,73 @@ struct CheckoutView: View {
     }
     
     func checkOutItem(itemID: String, name: String, userID: String, usersName: String) {
-        let checkOutTime = Timestamp(date: Date())
-        
-        let checkoutData: [String: Any] = [
-            "itemID": itemID,
-            "name": name,
-            "checkOutTime": checkOutTime,
-            "userID": userID,
-            "usersName": usersName
-        ]
-        
-        Firestore.firestore().collection("CheckedOutItems").addDocument(data: checkoutData) { error in
-            if let error = error {
-                print("Error checking out item: \(error.localizedDescription)")
-            } else {
-                print("Successfully checked out item \(name) with ID \(itemID) to \(usersName) with UserID of \(userID)")
+        // First, check if the item is already checked out
+        Firestore.firestore().collection("CheckedOutItems")
+            .whereField("itemID", isEqualTo: itemID)
+            .getDocuments { snapshot, error in
+                if let error = error {
+                    print("Error checking if item is already checked out: \(error.localizedDescription)")
+                    // Handle error (e.g., show an alert to the user)
+                    return
+                }
+
+                guard let snapshot = snapshot else {
+                    print("Error: Snapshot is nil")
+                    return
+                }
+
+                if !snapshot.documents.isEmpty {
+                    // Item is already checked out
+                    print("Item \(name) with ID \(itemID) is already checked out.")
+                    // Handle this case (e.g., show an alert to the user)
+                    
+                    // Set the state to show the "already checked out" message
+                    DispatchQueue.main.async {
+                        self.lastScannedItemName = name
+                        self.showAlreadyCheckedOut = true
+                        self.showConfirmation = false // Ensure success message is not shown
+                        
+                        // Hide the message after 5 seconds
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
+                            self.showAlreadyCheckedOut = false
+                            refreshScanner()
+                        }
+                    }
+                    return
+                }
+
+                // If the item is not already checked out, proceed with the checkout
+                let checkOutTime = Timestamp(date: Date())
+
+                let checkoutData: [String: Any] = [
+                    "itemID": itemID,
+                    "name": name,
+                    "checkOutTime": checkOutTime,
+                    "userID": userID,
+                    "usersName": usersName
+                ]
+
+                Firestore.firestore().collection("CheckedOutItems").addDocument(data: checkoutData) { error in
+                    if let error = error {
+                        print("Error checking out item: \(error.localizedDescription)")
+                    } else {
+                        print("Successfully checked out item \(name) with ID \(itemID) to \(usersName) with UserID of \(userID)")
+                        
+                        // Set the state to show the success message
+                        DispatchQueue.main.async {
+                            self.lastScannedItemName = name
+                            self.showConfirmation = true
+                            self.showAlreadyCheckedOut = false // Ensure "already checked out" message is not shown
+                            
+                            // Hide the message after 5 seconds
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
+                                self.showConfirmation = false
+                                refreshScanner()
+                            }
+                        }
+                    }
+                }
             }
-        }
     }
 
     func addItem(result: String, completion: @escaping (String?) -> Void) {
