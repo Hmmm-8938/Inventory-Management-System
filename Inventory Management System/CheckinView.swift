@@ -69,8 +69,11 @@ struct CheckinView: View {
                                 .padding()
                         } else {
                             ForEach(items, id: \.id) { item in
-                                Text(item.name)
-                                    .padding(.vertical, 8)
+                                if (item.userID == scannedUserID)
+                                {
+                                    Text(item.name)
+                                        .padding(.vertical, 8)
+                                }
                             }
                         }
                     }
