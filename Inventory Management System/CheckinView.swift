@@ -67,10 +67,19 @@ struct CheckinView: View {
                                 .padding()
                         } else {
                             ForEach(items, id: \.id) { item in
-                                if (item.userID == scannedUserID)
-                                {
-                                    Text(item.name)
-                                        .padding(.vertical, 8)
+                                if (item.userID == scannedUserID) {
+                                    HStack {
+                                        Text(item.name)
+                                            .padding(.vertical, 8)
+
+                                        Spacer()
+
+                                        Button("Check In") {
+                                            checkInItem(item: item)
+                                        }
+                                        .buttonStyle(.borderedProminent)
+                                        .tint(.green)
+                                    }
                                 }
                             }
                         }
@@ -78,6 +87,15 @@ struct CheckinView: View {
                     .onAppear {
                         syncInventoryData()
                     }
+                    
+                    // "Check In All" button
+                    Button("Check In All Items") {
+                        checkInAllItems()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.blue)
+                    .padding()
+                    .disabled(items.filter { $0.userID == scannedUserID }.isEmpty) // Disable if no items for the user
                 }
                 .onAppear {
                     withAnimation(.easeOut(duration: 0.6)) {
@@ -239,10 +257,8 @@ struct CheckinView: View {
             .navigationBarHidden(true)
         }
     }
-    
+
     private func syncInventoryData() {
-        // Rest of the code stays the same
-        // (Implementation unchanged)
         isSyncing = true
         FirestoreService.shared.getFirestoreDB().collection("CheckedOutItems").getDocuments { snapshot, error in
             isSyncing = false
@@ -288,7 +304,7 @@ struct CheckinView: View {
                 }
 
                 let checkinItem = CheckinItem(
-                    id: itemID,
+                    id: doc.documentID, // Use the document ID here
                     checkOutTime: checkOutTime,
                     name: name,
                     userID: userID,
@@ -299,7 +315,49 @@ struct CheckinView: View {
             }
         }
     }
+
+    // New function to handle checking in an item
+    private func checkInItem(item: CheckinItem) {
+        FirestoreService.shared.deleteCheckedOutItem(itemID: item.id) { success in
+            if success {
+                print("Successfully checked in item with ID: \(item.id)")
+                // Refresh the list after successful check-in
+                syncInventoryData()
+            } else {
+                print("Failed to check in item with ID: \(item.id)")
+                // Handle failure (e.g., show an alert)
+            }
+        }
+    }
     
+    // New function to handle checking in all items for the current user
+    private func checkInAllItems() {
+        let userItems = items.filter { $0.userID == scannedUserID }
+        
+        // Use a dispatch group to wait for all deletions to complete
+        let dispatchGroup = DispatchGroup()
+        
+        for item in userItems {
+            dispatchGroup.enter() // Enter the dispatch group before starting the deletion
+            FirestoreService.shared.deleteCheckedOutItem(itemID: item.id) { success in
+                if success {
+                    print("Successfully checked in item with ID: \(item.id)")
+                } else {
+                    print("Failed to check in item with ID: \(item.id)")
+                    // Handle failure (e.g., show an alert)
+                }
+                dispatchGroup.leave() // Leave the dispatch group when the deletion is complete
+            }
+        }
+        
+        // Notify when all deletions are complete
+        dispatchGroup.notify(queue: .main) {
+            print("All items checked in.")
+            // Refresh the list after all check-ins are complete
+            syncInventoryData()
+        }
+    }
+
     // Rest of the functions remain unchanged
     private func checkIfUserExists(userID: String, completion: @escaping (Bool, String?) -> Void) {
         print("Checking if user exists in Firestore: \(userID)")

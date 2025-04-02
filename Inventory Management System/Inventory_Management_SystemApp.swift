@@ -82,9 +82,14 @@ class FirestoreService {
         return db
     }
     
+    // Helper function to create a valid document ID from a scanned code
+    private func createValidDocumentID(from scannedCode: String) -> String {
+        return scannedCode.replacingOccurrences(of: "/", with: "_")
+    }
+    
     // Add an inventory item to Firestore
     func addInventoryItem(itemID: String, name: String, completion: @escaping (Bool) -> Void) {
-        let documentID = extractDocumentID(from: itemID)
+        let documentID = createValidDocumentID(from: itemID)
         
         db.collection("inventory").document(documentID).setData([
             "itemID": itemID,
@@ -171,6 +176,13 @@ class FirestoreService {
     // Delete an inventory item from Firestore
     func deleteInventoryItem(itemID: String, completion: @escaping (Bool) -> Void) {
         db.collection("inventory").document(itemID).delete { error in
+            completion(error == nil)
+        }
+    }
+    
+    // Delete a checked out item from Firestore
+    func deleteCheckedOutItem(itemID: String, completion: @escaping (Bool) -> Void) {
+        db.collection("CheckedOutItems").document(itemID).delete { error in
             completion(error == nil)
         }
     }
