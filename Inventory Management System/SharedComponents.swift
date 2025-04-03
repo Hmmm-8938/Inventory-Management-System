@@ -9,16 +9,19 @@
 import SwiftUI
 
 // Sleek, compact animated header component
-struct AnimatedHeaderView: View {
+struct AnimatedHeaderView: View
+{
     let title: String
     let subtitle: String
     let systemImage: String
     @Binding var offsetY: CGFloat
     let onHomeButtonTapped: () -> Void
     
-    var body: some View {
+    var body: some View
+    {
         // Solid background with gradient to ensure nothing shows through
-        ZStack {
+        ZStack
+        {
             // Make the background fully opaque
             Color.black.opacity(1).edgesIgnoringSafeArea(.top)
             
@@ -34,9 +37,11 @@ struct AnimatedHeaderView: View {
             .edgesIgnoringSafeArea(.top)
             
             // Single row layout with all elements aligned horizontally
-            HStack(alignment: .center, spacing: 10) {
+            HStack(alignment: .center, spacing: 10)
+            {
                 // Back button on the left
-                Button(action: onHomeButtonTapped) {
+                Button(action: onHomeButtonTapped)
+                {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 16, weight: .bold))
                         .foregroundColor(.white)
@@ -51,7 +56,8 @@ struct AnimatedHeaderView: View {
                 Spacer()
                 
                 // Centered title and subtitle
-                VStack(alignment: .center, spacing: 2) {
+                VStack(alignment: .center, spacing: 2)
+                {
                     Text(title)
                         .font(.system(size: 22, weight: .bold))
                         .foregroundColor(.white)
@@ -88,7 +94,8 @@ struct AnimatedHeaderView: View {
 }
 
 // PIN Entry View Component for shared use in check-in and check-out
-struct PinEntryView: View {
+struct PinEntryView: View
+{
     @Binding var pin: String
     var onComplete: ((String) -> Void)?
 
@@ -99,10 +106,15 @@ struct PinEntryView: View {
         ["", "0", "⌫"]
     ]
 
-    var body: some View {
-        VStack {
-            HStack(spacing: 10) {
-                ForEach(0..<4, id: \.self) { index in
+    var body: some View
+    {
+        VStack
+        {
+            HStack(spacing: 10)
+            {
+                ForEach(0..<4, id: \.self)
+                {
+                    index in
                     Circle()
                         .frame(width: 20, height: 20)
                         .foregroundColor(index < pin.count ? .black : .gray)
@@ -110,10 +122,14 @@ struct PinEntryView: View {
             }
             .padding()
 
-            ForEach(numbers, id: \.self) { row in
-                HStack {
+            ForEach(numbers, id: \.self)
+            {
+                row in
+                HStack
+                {
                     ForEach(row, id: \.self) { number in
-                        Button(action: {
+                        Button(action:
+                        {
                             handleInput(number)
                         }) {
                             Text(number)
@@ -130,16 +146,54 @@ struct PinEntryView: View {
         }
     }
 
-    private func handleInput(_ value: String) {
-        if value == "⌫" {
-            if !pin.isEmpty {
+    private func handleInput(_ value: String)
+    {
+        if value == "⌫"
+        {
+            if !pin.isEmpty
+            {
                 pin.removeLast()
             }
-        } else if pin.count < 4 {
+        }
+        else if pin.count < 4
+        {
             pin.append(value)
-            if pin.count == 4 {
+            if pin.count == 4
+            {
                 onComplete?(pin)
             }
         }
     }
+}
+
+class sharedFunctions
+{
+    // Variables to be used within shared Functions
+    @State private var refreshID: UUID = UUID()  // Refresh trigger
+    
+    
+    func refreshScanner()
+    {
+        refreshID = UUID()
+    }
+    func addUser(result: String, userID: String, name: String, userPinHash: String, salt: Data)
+    {
+        FirestoreService.shared.addUser(itemID: result, userID: userID, name: name, userPinHash: userPinHash, salt: salt)
+        {
+            success in
+            if success
+            {
+                print("Successfully added user to Firestore")
+            } else
+            {
+                print("Failed to add user to Firestore")
+            }
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3)
+        {
+            self.refreshScanner()
+        }
+    }
+
 }

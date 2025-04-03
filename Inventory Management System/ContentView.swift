@@ -68,7 +68,7 @@ struct ContentView: View {
                        )
                        
                        ActionButton(
-                           title: "View All Items",
+                           title: "View Checked Out Items",
                            icon: "list.clipboard.fill",
                            destination: CheckedOutItemsView(),
                            gradient: Gradient(colors: [Color(hex: "D40F7D"), Color(hex: "F064A6")])

@@ -13,7 +13,7 @@ import FirebaseFirestore
 
 struct CheckinView: View {
     @Environment(\.presentationMode) private var presentationMode
-    
+    let shared = sharedFunctions()
     @State private var isLoading: Bool = false
     @State private var isLoggedIn: Bool = false
     @State private var isSyncing = false
@@ -21,7 +21,7 @@ struct CheckinView: View {
     @State private var lastScannedItemName: String? = nil
     @State private var loggedUser: String? = nil
     @State private var pin: [String] = Array(repeating: "", count: 4)
-    @State private var refreshID: UUID = UUID()  // Refresh trigger
+//    @State private var refreshID: UUID = UUID()  // Refresh trigger
     @State private var scannedItems: [String] = [] // Store scanned items locally
     @State private var scannedUserID: String = ""
     @State private var showConfirmation: Bool = false
@@ -60,14 +60,18 @@ struct CheckinView: View {
                         .padding(.top, 20)
                     
                     List {
-                        if items.isEmpty {
+                        if items.isEmpty
+                        {
                             Text("No items checked out.")
                                 .foregroundColor(.gray)
                                 .italic()
                                 .padding()
-                        } else {
+                        }
+                        else
+                        {
                             ForEach(items, id: \.id) { item in
-                                if (item.userID == scannedUserID) {
+                                if (item.userID == scannedUserID)
+                                {
                                     HStack {
                                         Text(item.name)
                                             .padding(.vertical, 8)
@@ -214,9 +218,11 @@ struct CheckinView: View {
                                 Text("Welcome, \(scannedUserID)")
                                     .font(.title3)
                                     .fontWeight(.bold)
+                                    .foregroundColor(.black)
                                 
                                 Text("Enter Your Name:")
                                     .font(.headline)
+                                    .foregroundColor(.black)
                                 
                                 TextField("Name", text: $userInput)
                                     .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -404,7 +410,7 @@ struct CheckinView: View {
     private func completeRegistration() {
         let salt = generateSalt()
         let hashedPin = hashWithSalt(userPinEntry, salt: salt)
-        addUser(result: scannedUserID, userID: scannedUserID, name: userInput, userPinHash: hashedPin, salt: salt)
+        shared.addUser(result: scannedUserID, userID: scannedUserID, name: userInput, userPinHash: hashedPin, salt: salt)
         showUserRegistration = false
         self.isLoggedIn = true
         self.loggedUser = userInput
@@ -415,13 +421,13 @@ struct CheckinView: View {
         showFailure = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
             showFailure = false
-            refreshScanner()
+            shared.refreshScanner()
         }
     }
     
-    func refreshScanner() {
-        refreshID = UUID()
-    }
+//    func refreshScanner() {
+//        refreshID = UUID()
+//    }
     
     private func syncUsersData() {
         isSyncing = true
@@ -455,19 +461,25 @@ struct CheckinView: View {
         }
     }
     
-    func addUser(result: String, userID: String, name: String, userPinHash: String, salt: Data) {
-        FirestoreService.shared.addUser(itemID: result, userID: userID, name: name, userPinHash: userPinHash, salt: salt) { success in
-            if success {
-                print("Successfully added user to Firestore")
-            } else {
-                print("Failed to add user to Firestore")
-            }
-        }
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-            refreshScanner()
-        }
-    }
+//    func addUser(result: String, userID: String, name: String, userPinHash: String, salt: Data)
+//    {
+//        FirestoreService.shared.addUser(itemID: result, userID: userID, name: name, userPinHash: userPinHash, salt: salt)
+//        {
+//            success in
+//            if success
+//            {
+//                print("Successfully added user to Firestore")
+//            } else
+//            {
+//                print("Failed to add user to Firestore")
+//            }
+//        }
+//        
+//        DispatchQueue.main.asyncAfter(deadline: .now() + 3)
+//        {
+//            refreshScanner()
+//        }
+//    }
 
     func hashWithSalt(_ input: String, salt: Data) -> String {
         let inputData = Data(input.utf8)
