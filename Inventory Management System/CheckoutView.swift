@@ -293,9 +293,11 @@ struct CheckoutView: View {
                                 Text("Welcome, \(scannedUserID)")
                                     .font(.title3)
                                     .fontWeight(.bold)
+                                    .foregroundColor(.black)
                                 
                                 Text("Enter Your Name:")
                                     .font(.headline)
+                                    .foregroundColor(.black)
                                 
                                 TextField("Name", text: $userInput)
                                     .textFieldStyle(RoundedBorderTextFieldStyle())

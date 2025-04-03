@@ -206,7 +206,7 @@ struct ContentView: View {
            // Admin web view
            .fullScreenCover(isPresented: $showAdminWebView) {
                ZStack {
-                   AdminWebView(url: URL(string: "https://inventory-management-admin-eight.vercel.app")!)
+                   AdminWebView(url: URL(string: "https://calgary-zoo-admin.vercel.app")!)
                        .ignoresSafeArea()
                    
                    // Close button
